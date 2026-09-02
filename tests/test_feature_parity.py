@@ -66,7 +66,7 @@ def test_current_transaction_never_leaks_into_its_own_features():
     for w in ("1h", "24h", "7d"):
         assert (first_rows[f"txn_count_{w}"] == 0).all()
         assert (first_rows[f"amt_sum_{w}"] == 0).all()
-    assert (first_rows["seconds_since_last_txn"] == -1.0).all()
+    assert (first_rows["last_txn_unixtime"] == -1.0).all()
     assert (first_rows["txn_count_lifetime"] == 0).all()
 
 

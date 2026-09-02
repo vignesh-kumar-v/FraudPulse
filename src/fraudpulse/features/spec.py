@@ -60,6 +60,7 @@ PRODUCT_CODES: tuple[str, ...] = ("W", "C", "R", "H", "S")
 
 # Cold-start defaults, applied identically by both paths.
 COLD_START_SECONDS_SINCE_LAST = -1.0  # sentinel: "no prior transaction"
+NO_LAST_TXN = -1.0  # sentinel for last_txn_unixtime
 
 
 @dataclass(frozen=True)
@@ -110,11 +111,13 @@ def _build_feature_defs() -> list[FeatureDef]:
         )
     defs.append(
         FeatureDef(
-            "seconds_since_last_txn",
+            "last_txn_unixtime",
             "float64",
-            "Seconds between this event and the card's previous transaction; "
-            f"{COLD_START_SECONDS_SINCE_LAST} when there is no prior transaction.",
-            COLD_START_SECONDS_SINCE_LAST,
+            "Unix time of the card's previous transaction, or "
+            f"{NO_LAST_TXN} if it has none. Stored as an *absolute* timestamp, not "
+            "as an age: an age would be correct at write time and wrong at every "
+            "read after it. See docs/findings.md #3.",
+            NO_LAST_TXN,
         )
     )
     defs.append(
@@ -150,6 +153,9 @@ ONDEMAND_FEATURE_NAMES: list[str] = [
     "amt_over_mean_24h",  # current amount / mean of prior 24h (velocity spike)
     "amt_over_max_7d",  # current amount / largest amount seen in prior 7d
     "product_freq_7d",  # share of this card's prior-7d txns on the same product
+    # Derived from the stored absolute timestamp and the *request's* clock, so it
+    # is correct whenever it is read rather than only when it was written.
+    "seconds_since_last_txn",
 ]
 
 # Raw request fields that go into the model alongside store features.

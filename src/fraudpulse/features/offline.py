@@ -19,11 +19,11 @@ import numpy as np
 import pandas as pd
 
 from fraudpulse.features.spec import (
-    COLD_START_SECONDS_SINCE_LAST,
     ENTITY_KEY,
     EVENT_TS,
     FEATURE_DTYPES,
     FEATURE_NAMES,
+    NO_LAST_TXN,
     PRODUCT_CODES,
     WINDOWS,
 )
@@ -114,7 +114,7 @@ def compute_offline_features(
 
     out = _empty_frame(n)
     window_items = list(WINDOWS.items())
-    seconds_since = np.full(n, COLD_START_SECONDS_SINCE_LAST, dtype=np.float64)
+    last_txn = np.full(n, NO_LAST_TXN, dtype=np.float64)
     lifetime = np.zeros(n, dtype=np.int64)
 
     prod_index = {pc: i for i, pc in enumerate(PRODUCT_CODES)}
@@ -141,7 +141,7 @@ def compute_offline_features(
         lifetime[rows] = hi
         has_prev = hi > 0
         prev_idx = np.clip(hi - 1, 0, None)
-        seconds_since[rows] = np.where(has_prev, ts - ts[prev_idx], COLD_START_SECONDS_SINCE_LAST)
+        last_txn[rows] = np.where(has_prev, ts[prev_idx].astype(np.float64), NO_LAST_TXN)
 
         for wname, wsec in window_items:
             # lo_i = first index with ts > t_i - W  -> half-open (t - W, t)
@@ -159,7 +159,7 @@ def compute_offline_features(
                     j = prod_index[pc]
                     out[f"product_{pc}_count_7d"][rows] = pcum[j][hi] - pcum[j][lo]
 
-    out["seconds_since_last_txn"] = seconds_since
+    out["last_txn_unixtime"] = last_txn
     out["txn_count_lifetime"] = lifetime
 
     result = df.copy()

@@ -1,0 +1,15 @@
+project: fraudpulse
+provider: local
+
+# The registry is the shared contract: training reads feature definitions from
+# it, and so does the serving API. Neither hardcodes a feature list.
+registry: data/registry.db
+
+online_store:
+  type: redis
+  connection_string: localhost:6379,db=0
+
+offline_store:
+  type: file
+
+entity_key_serialization_version: 3
