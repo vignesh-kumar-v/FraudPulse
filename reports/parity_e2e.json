@@ -1,6 +1,6 @@
 {
   "served_vs_offline": {
-    "events_compared": 40000,
+    "events_compared": 590540,
     "events_missing_online": 0,
     "rows_with_mismatch": 0,
     "row_mismatch_rate": 0.0,
@@ -11,102 +11,102 @@
     "n_cards_with_diff": 0,
     "detail": [
       {
-        "card_id": "card_00905",
+        "card_id": "card_8477",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00303",
+        "card_id": "card_1483",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00265",
+        "card_id": "card_14201",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00935",
+        "card_id": "card_8857",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00502",
+        "card_id": "card_18044",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00602",
+        "card_id": "card_3142",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00559",
+        "card_id": "card_2325",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00965",
+        "card_id": "card_9485",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00625",
+        "card_id": "card_3658",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00643",
+        "card_id": "card_3876",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00173",
+        "card_id": "card_1271",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00805",
+        "card_id": "card_6768",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00630",
+        "card_id": "card_3594",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00016",
+        "card_id": "card_10254",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00542",
+        "card_id": "card_2027",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00074",
+        "card_id": "card_11166",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00834",
+        "card_id": "card_7392",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00500",
+        "card_id": "card_17939",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00726",
+        "card_id": "card_5297",
         "n_diffs": 0,
         "diffs": {}
       },
       {
-        "card_id": "card_00040",
+        "card_id": "card_10618",
         "n_diffs": 0,
         "diffs": {}
       }

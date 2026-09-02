@@ -1,0 +1,787 @@
+[
+  {
+    "tie_policy": "arrival",
+    "n_rows": 590540,
+    "n_cards": 13553,
+    "n_features": 19,
+    "rows_with_any_mismatch": 166,
+    "mismatches": [
+      {
+        "feature": "txn_count_1h",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 16.0,
+            "online": 17.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 19.0,
+            "online": 20.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 31.0,
+            "online": 32.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 49.0,
+            "online": 50.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 44.0,
+            "online": 45.0
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "txn_count_24h",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 18.0,
+            "online": 19.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 21.0,
+            "online": 22.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 71.0,
+            "online": 72.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 378.0,
+            "online": 379.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 538.0,
+            "online": 539.0
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "txn_count_7d",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 18.0,
+            "online": 19.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 21.0,
+            "online": 22.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 71.0,
+            "online": 72.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 378.0,
+            "online": 379.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 538.0,
+            "online": 539.0
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "amt_sum_1h",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7728.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 2566.2999999999997,
+            "online": 2616.2999999999997
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 2892.2999999999997,
+            "online": 3057.2499999999995
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 4094.5200000000023,
+            "online": 4314.509999999998
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 5172.329999999973,
+            "online": 5472.329999999996
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 3825.6999999999534,
+            "online": 3865.6999999999953
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "amt_sum_24h",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7728.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 2884.2999999999997,
+            "online": 2934.2999999999997
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 3210.2999999999997,
+            "online": 3375.2499999999995
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 10390.890000000001,
+            "online": 10610.880000000001
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 49227.79999999996,
+            "online": 49527.79999999996
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 66101.84999999982,
+            "online": 66141.84999999982
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "amt_sum_7d",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7728.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 2884.2999999999997,
+            "online": 2934.2999999999997
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 3210.2999999999997,
+            "online": 3375.2499999999995
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 10390.890000000001,
+            "online": 10610.880000000001
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 49227.79999999996,
+            "online": 49527.79999999996
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 66101.84999999982,
+            "online": 66141.84999999982
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "amt_mean_1h",
+        "n_mismatched": 142,
+        "n_rows": 590540,
+        "max_abs_diff": 910.0349999999488,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 160.39374999999998,
+            "online": 153.89999999999998
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 152.22631578947366,
+            "online": 152.86249999999998
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 132.0812903225807,
+            "online": 134.82843749999995
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 105.55775510204026,
+            "online": 109.44659999999993
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 86.94772727272621,
+            "online": 85.90444444444434
+          }
+        ],
+        "rate": 0.00024045788600264166
+      },
+      {
+        "feature": "amt_mean_24h",
+        "n_mismatched": 154,
+        "n_rows": 590540,
+        "max_abs_diff": 493.28,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 160.23888888888888,
+            "online": 154.43684210526314
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 152.87142857142857,
+            "online": 153.42045454545453
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 146.3505633802817,
+            "online": 147.37333333333333
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 130.23227513227502,
+            "online": 130.68021108179408
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 122.86589219330821,
+            "online": 122.71215213358036
+          }
+        ],
+        "rate": 0.0002607782707352593
+      },
+      {
+        "feature": "amt_mean_7d",
+        "n_mismatched": 157,
+        "n_rows": 590540,
+        "max_abs_diff": 493.28,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 160.23888888888888,
+            "online": 154.43684210526314
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 152.87142857142857,
+            "online": 153.42045454545453
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 146.3505633802817,
+            "online": 147.37333333333333
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 130.23227513227502,
+            "online": 130.68021108179408
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 122.86589219330821,
+            "online": 122.71215213358036
+          }
+        ],
+        "rate": 0.0002658583669184137
+      },
+      {
+        "feature": "amt_max_1h",
+        "n_mismatched": 54,
+        "n_rows": 590540,
+        "max_abs_diff": 835.95,
+        "example_rows": [
+          {
+            "transaction_id": 3005434,
+            "card_id": "card_7861",
+            "event_timestamp": "2017-12-06 17:50:07",
+            "offline": 226.0,
+            "online": 319.95
+          },
+          {
+            "transaction_id": 3024316,
+            "card_id": "card_15497",
+            "event_timestamp": "2017-12-11 18:13:02",
+            "offline": 20.0,
+            "online": 107.95
+          },
+          {
+            "transaction_id": 3038729,
+            "card_id": "card_2616",
+            "event_timestamp": "2017-12-15 00:21:45",
+            "offline": 0.0,
+            "online": 226.0
+          },
+          {
+            "transaction_id": 3065718,
+            "card_id": "card_7861",
+            "event_timestamp": "2017-12-20 19:37:48",
+            "offline": 87.0,
+            "online": 108.5
+          },
+          {
+            "transaction_id": 3066458,
+            "card_id": "card_6019",
+            "event_timestamp": "2017-12-20 21:37:50",
+            "offline": 311.95,
+            "online": 338.89
+          }
+        ],
+        "rate": 9.144173129677922e-05
+      },
+      {
+        "feature": "amt_max_24h",
+        "n_mismatched": 9,
+        "n_rows": 590540,
+        "max_abs_diff": 493.28,
+        "example_rows": [
+          {
+            "transaction_id": 3005434,
+            "card_id": "card_7861",
+            "event_timestamp": "2017-12-06 17:50:07",
+            "offline": 302.46,
+            "online": 319.95
+          },
+          {
+            "transaction_id": 3095882,
+            "card_id": "card_16326",
+            "event_timestamp": "2017-12-25 20:15:05",
+            "offline": 100.0,
+            "online": 125.0
+          },
+          {
+            "transaction_id": 3123999,
+            "card_id": "card_11218",
+            "event_timestamp": "2018-01-01 22:29:47",
+            "offline": 107.95,
+            "online": 117.0
+          },
+          {
+            "transaction_id": 3152963,
+            "card_id": "card_7861",
+            "event_timestamp": "2018-01-10 22:32:10",
+            "offline": 593.83,
+            "online": 614.95
+          },
+          {
+            "transaction_id": 3236241,
+            "card_id": "card_2407",
+            "event_timestamp": "2018-02-07 18:43:28",
+            "offline": 0.0,
+            "online": 15.95
+          }
+        ],
+        "rate": 1.5240288549463203e-05
+      },
+      {
+        "feature": "amt_max_7d",
+        "n_mismatched": 2,
+        "n_rows": 590540,
+        "max_abs_diff": 493.28,
+        "example_rows": [
+          {
+            "transaction_id": 3322545,
+            "card_id": "card_2380",
+            "event_timestamp": "2018-03-06 16:49:43",
+            "offline": 0.0,
+            "online": 493.28
+          },
+          {
+            "transaction_id": 3440415,
+            "card_id": "card_1359",
+            "event_timestamp": "2018-04-13 23:49:11",
+            "offline": 311.95,
+            "online": 512.95
+          }
+        ],
+        "rate": 3.3867307887696006e-06
+      },
+      {
+        "feature": "last_txn_unixtime",
+        "n_mismatched": 139,
+        "n_rows": 590540,
+        "max_abs_diff": 3810532.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 1512195583.0,
+            "online": 1512195631.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 1512195675.0,
+            "online": 1512195689.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 1512201510.0,
+            "online": 1512201516.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 1512239410.0,
+            "online": 1512239575.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 1512254422.0,
+            "online": 1512254441.0
+          }
+        ],
+        "rate": 0.00023537778981948726
+      },
+      {
+        "feature": "txn_count_lifetime",
+        "n_mismatched": 166,
+        "n_rows": 590540,
+        "max_abs_diff": 7.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 18.0,
+            "online": 19.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 21.0,
+            "online": 22.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 71.0,
+            "online": 72.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 378.0,
+            "online": 379.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 538.0,
+            "online": 539.0
+          }
+        ],
+        "rate": 0.00028109865546787683
+      },
+      {
+        "feature": "product_W_count_7d",
+        "n_mismatched": 139,
+        "n_rows": 590540,
+        "max_abs_diff": 7.0,
+        "example_rows": [
+          {
+            "transaction_id": 2987942,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:20:31",
+            "offline": 18.0,
+            "online": 19.0
+          },
+          {
+            "transaction_id": 2987945,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 06:21:29",
+            "offline": 21.0,
+            "online": 22.0
+          },
+          {
+            "transaction_id": 2988055,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 07:58:36",
+            "offline": 71.0,
+            "online": 72.0
+          },
+          {
+            "transaction_id": 2990187,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 18:32:55",
+            "offline": 378.0,
+            "online": 379.0
+          },
+          {
+            "transaction_id": 2991672,
+            "card_id": "card_7919",
+            "event_timestamp": "2017-12-02 22:40:41",
+            "offline": 537.0,
+            "online": 538.0
+          }
+        ],
+        "rate": 0.00023537778981948726
+      },
+      {
+        "feature": "product_C_count_7d",
+        "n_mismatched": 18,
+        "n_rows": 590540,
+        "max_abs_diff": 1.0,
+        "example_rows": [
+          {
+            "transaction_id": 3053952,
+            "card_id": "card_15885",
+            "event_timestamp": "2017-12-18 16:12:42",
+            "offline": 507.0,
+            "online": 508.0
+          },
+          {
+            "transaction_id": 3074253,
+            "card_id": "card_15885",
+            "event_timestamp": "2017-12-22 04:33:09",
+            "offline": 675.0,
+            "online": 676.0
+          },
+          {
+            "transaction_id": 3101515,
+            "card_id": "card_9633",
+            "event_timestamp": "2017-12-26 17:58:15",
+            "offline": 391.0,
+            "online": 392.0
+          },
+          {
+            "transaction_id": 3104009,
+            "card_id": "card_9633",
+            "event_timestamp": "2017-12-27 04:57:16",
+            "offline": 409.0,
+            "online": 410.0
+          },
+          {
+            "transaction_id": 3112513,
+            "card_id": "card_4461",
+            "event_timestamp": "2017-12-29 19:11:33",
+            "offline": 236.0,
+            "online": 237.0
+          }
+        ],
+        "rate": 3.0480577098926406e-05
+      },
+      {
+        "feature": "product_R_count_7d",
+        "n_mismatched": 5,
+        "n_rows": 590540,
+        "max_abs_diff": 1.0,
+        "example_rows": [
+          {
+            "transaction_id": 3010988,
+            "card_id": "card_11162",
+            "event_timestamp": "2017-12-08 00:45:32",
+            "offline": 4.0,
+            "online": 5.0
+          },
+          {
+            "transaction_id": 3089585,
+            "card_id": "card_6019",
+            "event_timestamp": "2017-12-24 19:25:36",
+            "offline": 506.0,
+            "online": 507.0
+          },
+          {
+            "transaction_id": 3095882,
+            "card_id": "card_16326",
+            "event_timestamp": "2017-12-25 20:15:05",
+            "offline": 36.0,
+            "online": 37.0
+          },
+          {
+            "transaction_id": 3100195,
+            "card_id": "card_6019",
+            "event_timestamp": "2017-12-26 14:34:00",
+            "offline": 631.0,
+            "online": 632.0
+          },
+          {
+            "transaction_id": 3508728,
+            "card_id": "card_6019",
+            "event_timestamp": "2018-05-08 16:44:57",
+            "offline": 44.0,
+            "online": 45.0
+          }
+        ],
+        "rate": 8.466826971924002e-06
+      },
+      {
+        "feature": "product_H_count_7d",
+        "n_mismatched": 4,
+        "n_rows": 590540,
+        "max_abs_diff": 1.0,
+        "example_rows": [
+          {
+            "transaction_id": 2995182,
+            "card_id": "card_12544",
+            "event_timestamp": "2017-12-03 21:11:11",
+            "offline": 13.0,
+            "online": 14.0
+          },
+          {
+            "transaction_id": 3037179,
+            "card_id": "card_6019",
+            "event_timestamp": "2017-12-14 18:54:41",
+            "offline": 265.0,
+            "online": 266.0
+          },
+          {
+            "transaction_id": 3102684,
+            "card_id": "card_7585",
+            "event_timestamp": "2017-12-26 21:35:21",
+            "offline": 209.0,
+            "online": 210.0
+          },
+          {
+            "transaction_id": 3396036,
+            "card_id": "card_16075",
+            "event_timestamp": "2018-03-30 16:50:27",
+            "offline": 20.0,
+            "online": 21.0
+          }
+        ],
+        "rate": 6.773461577539201e-06
+      }
+    ],
+    "row_mismatch_rate": 0.00028109865546787683,
+    "passed": false
+  },
+  {
+    "tie_policy": "watermark",
+    "n_rows": 590540,
+    "n_cards": 13553,
+    "n_features": 19,
+    "rows_with_any_mismatch": 0,
+    "mismatches": [],
+    "row_mismatch_rate": 0.0,
+    "passed": true
+  }
+]
