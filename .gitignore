@@ -1,0 +1,46 @@
+# Data (never commit datasets or generated artifacts)
+data/
+feature_repo/data/
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# MLflow / Feast / Ray
+mlruns/
+mlartifacts/
+.feast/
+feature_repo/.ipynb_checkpoints/
+ray_results/
+outputs/
+reports/*.html
+!reports/.gitkeep
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Secrets
+.env

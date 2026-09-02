@@ -1,0 +1,84 @@
+# FraudPulse local stack.
+#   redpanda  - Kafka-compatible broker (lighter than the JVM Kafka + ZK pair)
+#   redis     - Feast online store
+#   console   - Redpanda web UI, handy for eyeballing topic lag during a demo
+#   mlflow    - experiment tracking + model registry (sqlite backend, local artifacts)
+name: fraudpulse
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    container_name: fp-redpanda
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      # advertise both an internal (docker network) and external (host) listener so
+      # producers on the host and consumers in containers both resolve correctly
+      - --kafka-addr=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092
+      - --advertise-kafka-addr=INTERNAL://redpanda:9092,EXTERNAL://localhost:19092
+      - --rpc-addr=0.0.0.0:33145
+      - --advertise-rpc-addr=redpanda:33145
+    ports:
+      - "19092:19092"   # kafka bootstrap for host processes
+      - "9644:9644"     # admin api
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+
+  console:
+    image: redpandadata/console:v2.7.2
+    container_name: fp-console
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: fp-redis
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - redis-data:/data
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.2
+    container_name: fp-mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:5000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - mlflow-data:/mlflow
+
+volumes:
+  redpanda-data:
+  redis-data:
+  mlflow-data:
