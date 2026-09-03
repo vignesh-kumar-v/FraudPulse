@@ -1,0 +1,12 @@
+{
+  "landed_events": 590540,
+  "cards": 13553,
+  "window_days": "full",
+  "pending_after_finalize": 0,
+  "out_of_order": 0,
+  "pushed": 13553,
+  "spot_check": {
+    "n_checked": 20,
+    "n_cards_with_diff": 0
+  }
+}

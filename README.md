@@ -28,13 +28,25 @@ Redis, and — for the cloud leg — real AWS. Reproduce with `make verify`.
 | 1 | Landed rows == source rows | **590,540 == 590,540**, 0 malformed |
 | 2 | Offline vs. online feature parity | **0 / 590,540** mismatched |
 | 2 | Online store vs. offline, through Kafka | **0** mismatched, **20/20** Redis spot checks exact |
-| 3 | Model beats a real baseline | **PR-AUC 0.1716** vs 0.0371 amount-only (**4.6×**) |
-| 3 | p95 inference latency | **2.22 ms** end-to-end, 1.31 ms server-side |
+| 2 | State rebuilds from the landing zone | Redis wiped to 0 → **13,553 cards in 2.5 s**, 20/20 exact |
+| 3 | Model beats a real baseline | **PR-AUC 0.1690** vs 0.0371 amount-only (**4.6×**) |
+| 3 | p95 inference latency | **2.29 ms** end-to-end, 1.36 ms server-side |
 | 4 | Drift fires on shift, not on noise | null **0.000**, temporal floor 0.391, **3/3** injections detected |
 
 ```
-$ make verify
-7/7 checks passed
+$ make e2e          # from an empty topic, ~12 min
+8/8 checks passed
+```
+
+Every number above came from that one run. `verify` recomputes phases 0–2 and
+reads a JSON report for phases 3–4 — and because those reports are committed to
+the repo, it **refuses any report older than the dataset it describes** rather
+than passing on numbers measured somewhere else:
+
+```
+2  state rebuilds from the landing zone   FAIL  state_rebuild.json is 0 min older
+3  p95 inference latency                  FAIL  latency.json is 35 min older than
+                                                the dataset it describes - stale
 ```
 
 ### Train/serve skew, quantified
@@ -54,18 +66,18 @@ quietly become vacuous.
 
 | load | rps | client p50 | client p95 | server p50 | **server p95** |
 |---|---|---|---|---|---|
-| 1 concurrent | 487 | 2.00 ms | 2.22 ms | 1.16 ms | **1.31 ms** |
+| 1 concurrent | 476 | 2.06 ms | 2.29 ms | 1.20 ms | **1.36 ms** |
 | 8 concurrent | 1,093 | 6.45 ms | 12.52 ms | 2.03 ms | **3.87 ms** |
-| 32 concurrent (4 client procs) | 2,141 | 14.15 ms | 24.15 ms | 3.97 ms | **8.74 ms** |
+| 32 concurrent (4 client procs) | 2,030 | 14.88 ms | 25.23 ms | 4.29 ms | **9.37 ms** |
 | 32 concurrent (1 client proc) | 511 | 34.72 ms | 202.94 ms | 1.44 ms | **2.17 ms** |
 
 That last row is not the service failing. It is the load generator being
 GIL-bound — the server's own self-timing stayed flat while the client's ballooned
 9×. Splitting the *same* 32 in-flight requests across four processes took
-throughput from 511 to 2,141 rps with nothing changed server-side.
+throughput from 511 to 2,030 rps with nothing changed server-side.
 [findings.md #8](docs/findings.md).
 
-SHAP adds **+4.37 ms** to p95 (2.22 → 6.59 ms at concurrency 1).
+SHAP adds **+5.01 ms** to p95 (2.29 → 7.30 ms at concurrency 1).
 
 ### Model
 
@@ -73,8 +85,12 @@ SHAP adds **+4.37 ms** to p95 (2.22 → 6.59 ms at concurrency 1).
 |---|---|---|
 | Prevalence (random) | 0.0348 | 0.500 |
 | Amount only | 0.0371 | — |
-| LightGBM (40 Optuna trials) | 0.1602 | 0.790 |
-| **XGBoost (40 Optuna trials)** | **0.1716** | 0.802 |
+| LightGBM (30 Optuna trials) | 0.1538 | 0.789 |
+| **XGBoost (30 Optuna trials)** | **0.1690** | 0.800 |
+
+30 trials is the `make train` default, so that row is what `make e2e`
+reproduces. A 40-trial run reached 0.1716 / 0.802 — the extra 10 trials buy
+about 0.003 PR-AUC, which is roughly the run-to-run spread.
 
 PR-AUC, not accuracy — at 3.5% fraud, "always legit" scores 96.5% accurate and
 catches nothing. The split is chronological; validation PR-AUC is 0.212 and test
@@ -197,6 +213,7 @@ make land           # Phase 1: land raw events, assert the row count
 make build-offline  # Phase 2: batch features + feast apply
 make features       # Phase 2: stream -> incremental features -> redis
 make parity         # Phase 2 verify: in-process AND end-to-end
+make rebuild-state  # Phase 2 verify: rebuild keyed state from the landing zone
 
 make train          # Phase 3: feast historical join, optuna, mlflow registry
 make serve          # Phase 3: FastAPI on :8000
@@ -210,7 +227,9 @@ No dataset and no Docker? `make test` still runs — 47 tests build their fixtur
 from a synthetic generator that deliberately includes duplicate timestamps, long
 idle gaps and single-transaction cards.
 
-`make e2e` runs the whole thing from nothing.
+`make e2e` runs the whole thing from nothing — it resets the topic, the landing
+zone and the online store first, starts and stops the API around the load test,
+and ends in a `verify` where every report was produced by that same run.
 
 ### Try the API
 
@@ -270,8 +289,8 @@ src/fraudpulse/
 feature_repo/   feature_store.yaml, definitions.py
 docker/         Dockerfile.trainer, train_entrypoint.py
 terraform/      main.tf, ecs.tf, variables.tf, outputs.tf, README.md
-scripts/        smoke_kafka.py, verify_parity.py, sagemaker_train.py,
-                run_fargate_training.py, check_orphans.sh
+scripts/        smoke_kafka.py, verify_parity.py, rebuild_state.py,
+                sagemaker_train.py, run_fargate_training.py, check_orphans.sh
 docs/           architecture.md, findings.md, blueprint.md
 tests/          47 tests, no docker or dataset required
 reports/        every number in this README, as JSON
@@ -282,8 +301,12 @@ reports/        every number in this README, as JSON
 ## Honest limitations
 
 - **The online feature engine keeps state in-process**, like Flink keyed state.
-  Durability comes from replaying the Parquet landing zone, not from a
-  checkpoint. Fine for one consumer; a real deployment needs RocksDB-backed
+  Recovery is a full replay of the Parquet landing zone
+  (`scripts/rebuild_state.py`, verified by wiping Redis: 13,553 cards rebuilt
+  from 590,540 events in 2.5 s, 20/20 spot checks exact) rather than a
+  checkpoint. That is O(all history) — 1.9 s here, but it grows without bound,
+  and a bounded replay is not a valid shortcut
+  ([findings.md #12](docs/findings.md)). A real deployment needs RocksDB-backed
   state or Flink itself.
 - **`release_after_s` trades staleness against tie-correctness.** A tie whose
   halves are more than 5 wall-clock seconds apart will be miscounted. There is

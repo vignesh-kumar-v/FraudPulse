@@ -6,10 +6,11 @@ VENV := .venv
 .DEFAULT_GOAL := help
 .PHONY: help setup up down logs ps smoke data prepare test lint fmt clean \
         topic produce land features parity train serve loadtest drift nuke \
-        build-offline hpo-compare verify e2e status
+        build-offline hpo-compare verify e2e status rebuild-state serve-bg \
+        serve-stop reset-stream
 
 help: ## show this help
-	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 # ---------------------------------------------------------------- environment
@@ -48,8 +49,13 @@ prepare: ## build data/processed/events.parquet from the raw csv
 	$(PY) -m fraudpulse.cli prepare
 
 # ----------------------------------------------------------------- streaming
-topic: ## (re)create the transactions topic
+topic: ## create the transactions topic if absent
 	$(PY) -m fraudpulse.cli topic
+
+reset-stream: ## wipe the topic, the landing zone and the online store
+	$(PY) -m fraudpulse.cli topic --recreate
+	rm -rf data/landing/*
+	-@docker exec fp-redis redis-cli flushall
 
 produce: ## PHASE 1: replay the dataset onto kafka
 	$(PY) -m fraudpulse.cli produce
@@ -67,6 +73,9 @@ build-offline: ## PHASE 2: compute offline features and register the feast repo
 parity: ## PHASE 2 verify: offline vs online feature parity, in-process and e2e
 	$(PY) -m fraudpulse.cli parity
 	$(PY) scripts/verify_parity.py
+
+rebuild-state: ## PHASE 2 verify: rebuild the streaming state from the landing zone
+	$(PY) scripts/rebuild_state.py
 
 # ------------------------------------------------------------------ modelling
 train: ## PHASE 3: build training set, tune, train, register in mlflow
@@ -93,7 +102,34 @@ hpo-compare: ## PHASE 5 verify (stretch): optuna vs ray tune wall-clock
 verify: ## run every phase's verification gate and print a pass/fail table
 	$(PY) -m fraudpulse.cli verify-all
 
-e2e: up topic prepare produce land build-offline features parity train verify ## full pipeline from nothing
+# `e2e` used to stop at `train`, which meant `verify` had no fresh latency or
+# drift report to read and fell back to whatever was committed. It now runs the
+# steps that produce those reports, including starting and stopping the API,
+# so a full pass is earned on this machine rather than inherited from the repo.
+e2e: ## full pipeline from nothing, ending in a verify that measured everything itself
+	$(MAKE) up prepare
+	$(MAKE) reset-stream
+	$(MAKE) produce land build-offline features
+	$(MAKE) parity rebuild-state train
+	$(MAKE) serve-bg
+	$(MAKE) loadtest || ($(MAKE) serve-stop && false)
+	$(MAKE) serve-stop
+	$(MAKE) drift
+	$(MAKE) verify
+
+serve-bg: ## start the API in the background and wait for /health
+	@$(PY) -m uvicorn fraudpulse.serving.app:app --host 0.0.0.0 --port 8000 \
+	  --workers 4 --log-level warning & echo $$! > .uvicorn.pid
+	@echo "waiting for the api ..."
+	@for i in $$(seq 1 40); do \
+	  curl -sf http://localhost:8000/health >/dev/null 2>&1 && \
+	    { echo "api up"; exit 0; }; \
+	  sleep 3; \
+	done; echo "api did not become healthy"; exit 1
+
+serve-stop: ## stop the background API
+	-@pkill -f "uvicorn fraudpulse.serving.app" 2>/dev/null || true
+	-@rm -f .uvicorn.pid
 
 # ----------------------------------------------------------------------- dev
 test: ## run the test suite (no docker, no dataset required)

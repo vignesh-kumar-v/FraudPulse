@@ -11,12 +11,21 @@ import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
 from fraudpulse.config import settings
 from fraudpulse.logging_utils import get_logger
+
+# Phases 0-2 recompute from scratch. Phases 3-4 read a JSON report, because
+# re-running a load test or a drift experiment inside `verify` would take
+# minutes. That shortcut has a failure mode: reports/*.json is committed to the
+# repo, so on a fresh clone those checks would happily PASS on numbers measured
+# on someone else's machine. _fresh_report() closes that - a report is only
+# accepted if it is newer than the dataset it claims to describe.
+EVENTS_PARQUET = settings.processed_dir / "events.parquet"
 
 log = get_logger(__name__)
 console = Console()
@@ -29,6 +38,30 @@ class Check:
     passed: bool
     detail: str
     seconds: float
+
+
+def _fresh_report(path: Path, *, produced_by: str) -> tuple[dict | None, str]:
+    """Load a report, refusing one that predates the current dataset.
+
+    Returns (payload, reason). ``payload`` is None when the report cannot be
+    trusted, and ``reason`` says why in a way that names the fix.
+    """
+    if not path.exists():
+        return None, f"{path.relative_to(settings.repo_root)} missing - run `{produced_by}`"
+    if not EVENTS_PARQUET.exists():
+        return None, (
+            f"no {EVENTS_PARQUET.name} to check {path.name} against; a committed report "
+            "proves nothing about this machine - run `make prepare` first"
+        )
+    report_mtime = path.stat().st_mtime
+    data_mtime = EVENTS_PARQUET.stat().st_mtime
+    if report_mtime < data_mtime:
+        age = (data_mtime - report_mtime) / 60
+        return None, (
+            f"{path.name} is {age:.0f} min older than the dataset it describes - "
+            f"stale, re-run `{produced_by}`"
+        )
+    return json.loads(path.read_text()), ""
 
 
 def _timed(fn: Callable[[], tuple[bool, str]], phase: str, name: str) -> Check:
@@ -85,6 +118,23 @@ def _check_parity() -> tuple[bool, str]:
     )
 
 
+def _check_state_recovery() -> tuple[bool, str]:
+    """Phase 2: can the streaming state actually be rebuilt after a crash?"""
+    d, why = _fresh_report(
+        settings.reports_dir / "state_rebuild.json", produced_by="python scripts/rebuild_state.py"
+    )
+    if d is None:
+        return False, why
+    sc = d.get("spot_check")
+    if not sc:
+        return False, "state_rebuild.json has no spot check - re-run without --no-push"
+    ok = sc["n_cards_with_diff"] == 0
+    return ok, (
+        f"{d['landed_events']} landed events replayed into {d['cards']} cards; "
+        f"{sc['n_checked'] - sc['n_cards_with_diff']}/{sc['n_checked']} spot checks exact"
+    )
+
+
 def _check_online_store() -> tuple[bool, str]:
     import subprocess
     import sys
@@ -109,10 +159,9 @@ def _check_online_store() -> tuple[bool, str]:
 
 
 def _check_model() -> tuple[bool, str]:
-    path = settings.reports_dir / "training_summary.json"
-    if not path.exists():
-        return False, "reports/training_summary.json missing - run `make train`"
-    d = json.loads(path.read_text())
+    d, why = _fresh_report(settings.reports_dir / "training_summary.json", produced_by="make train")
+    if d is None:
+        return False, why
     base = d["baselines"]["baseline_amount_only_pr_auc"]
     best = max(r["test_pr_auc"] for r in d["results"])
     return best > 2 * base, (
@@ -122,10 +171,11 @@ def _check_model() -> tuple[bool, str]:
 
 
 def _check_latency() -> tuple[bool, str]:
-    path = settings.reports_dir / "latency.json"
-    if not path.exists():
-        return False, "reports/latency.json missing - run `make loadtest`"
-    d = json.loads(path.read_text())
+    d, why = _fresh_report(
+        settings.reports_dir / "latency.json", produced_by="make serve && make loadtest"
+    )
+    if d is None:
+        return False, why
     single = d.get("c1x1")
     if not single:
         return False, "no single-request measurement (c1x1) in the report"
@@ -135,10 +185,9 @@ def _check_latency() -> tuple[bool, str]:
 
 
 def _check_drift() -> tuple[bool, str]:
-    path = settings.reports_dir / "drift_experiment.json"
-    if not path.exists():
-        return False, "reports/drift_experiment.json missing - run `make drift`"
-    d = json.loads(path.read_text())
+    d, why = _fresh_report(settings.reports_dir / "drift_experiment.json", produced_by="make drift")
+    if d is None:
+        return False, why
     return d["passed"], (
         f"null share {d['null_drift_share']:.3f} (must be quiet); "
         f"temporal floor {d['temporal_floor_drift_share']:.3f}; "
@@ -151,6 +200,7 @@ CHECKS: list[tuple[str, str, Callable[[], tuple[bool, str]]]] = [
     ("1", "landed rows == source rows", _check_landing_row_count),
     ("2", "offline/online feature parity", _check_parity),
     ("2", "online store matches offline (e2e)", _check_online_store),
+    ("2", "state rebuilds from the landing zone", _check_state_recovery),
     ("3", "model beats the amount-only baseline", _check_model),
     ("3", "p95 inference latency", _check_latency),
     ("4", "drift monitor fires on shift, not on noise", _check_drift),

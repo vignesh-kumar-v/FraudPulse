@@ -4,48 +4,55 @@
     "check": "services reachable",
     "passed": true,
     "detail": "all up",
-    "seconds": 0.002217832996393554
+    "seconds": 0.0027319579967297614
   },
   {
     "phase": "1",
     "check": "landed rows == source rows",
     "passed": true,
     "detail": "source=590540 landed=590540",
-    "seconds": 0.40717662501265295
+    "seconds": 0.4475409160077106
   },
   {
     "phase": "2",
     "check": "offline/online feature parity",
     "passed": true,
     "detail": "watermark 0/590540 mismatched; arrival 166 (0.0281%) - the naive path must still diverge or the check is vacuous",
-    "seconds": 9.402882125010365
+    "seconds": 9.436869750003098
   },
   {
     "phase": "2",
     "check": "online store matches offline (e2e)",
     "passed": true,
     "detail": "590540 events served vs offline: 0 mismatched; redis spot check 20/20 exact",
-    "seconds": 4.355897500005085
+    "seconds": 4.435416791995522
+  },
+  {
+    "phase": "2",
+    "check": "state rebuilds from the landing zone",
+    "passed": true,
+    "detail": "590540 landed events replayed into 13553 cards; 20/20 spot checks exact",
+    "seconds": 0.0010929999989457428
   },
   {
     "phase": "3",
     "check": "model beats the amount-only baseline",
     "passed": true,
-    "detail": "test PR-AUC 0.1716 vs amount-only 0.0371 (4.6x) vs prevalence 0.0348",
-    "seconds": 0.00028254200879018754
+    "detail": "test PR-AUC 0.1690 vs amount-only 0.0371 (4.6x) vs prevalence 0.0348",
+    "seconds": 0.00023083301493898034
   },
   {
     "phase": "3",
     "check": "p95 inference latency",
     "passed": true,
-    "detail": "p95 2.22ms end-to-end, 1.31ms server-side, 0 errors",
-    "seconds": 0.000276708000455983
+    "detail": "p95 2.29ms end-to-end, 1.36ms server-side, 0 errors",
+    "seconds": 0.0001255410024896264
   },
   {
     "phase": "4",
     "check": "drift monitor fires on shift, not on noise",
     "passed": true,
     "detail": "null share 0.000 (must be quiet); temporal floor 0.391; detected 3/3 injections",
-    "seconds": 0.0003277919895481318
+    "seconds": 0.00015104201156646013
   }
 ]

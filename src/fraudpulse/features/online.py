@@ -233,8 +233,24 @@ class OnlineFeatureEngine:
     """Owns keyed state for every card seen on the stream.
 
     Deliberately in-process (the same model Flink/Kafka-Streams use for keyed
-    state). Durability comes from the landing zone: ``scripts/rebuild_state.py``
-    replays the last 7 days of landed Parquet to reconstruct this on restart.
+    state). Durability comes from the landing zone: the consumer writes every
+    accepted event to Parquet *before* committing its offsets, so this state is
+    a pure function of files that survive a crash.
+    ``scripts/rebuild_state.py`` replays them; wiping Redis and rebuilding
+    13,553 cards from 590,540 landed events takes 2.5s and reproduces the online
+    store exactly (20/20 spot checks).
+
+    **The replay has to cover the whole landing zone, not one window.** An
+    earlier version of this docstring claimed 7 days was enough because 7 days
+    is the widest rolling window. Measured, a 7-day replay is wrong on 14 of the
+    19 features (docs/findings.md #12):
+
+      * ``txn_count_lifetime`` is unbounded - wrong for 96.5% of cards, by up to
+        14,820 transactions.
+      * Even the 7d aggregates are wrong for 41% of cards, because a card's
+        window is anchored to *its own* next event, not to the global clock. A
+        card dormant for a month still needs the events from before the global
+        7-day cutoff.
     """
 
     def __init__(self, tie_policy: TiePolicy = "watermark") -> None:

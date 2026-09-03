@@ -400,3 +400,61 @@ columns that were always going to fail.
 **The reason it was findable at all** is that `run_fargate_training.py` compares
 the cloud metric to the local one on every run. A deployment script that only
 reported "task succeeded" would have shipped this.
+
+---
+
+## #12 — "Replay the last 7 days to recover" was wrong on 14 of 19 features
+
+**Where it came from.** `OnlineFeatureEngine`'s docstring described the crash
+recovery story as replaying the last 7 days of landed Parquet, on the reasoning
+that 7 days is the widest rolling window. It also cited
+`scripts/rebuild_state.py`, which did not exist. So the durability story was
+asserted twice over — an unimplemented script and an untested claim.
+
+**Building it showed the claim was also false.** With the script written, the
+bounded replay can be measured against a full one. Wiping Redis and replaying
+the full landing zone reconstructs the store exactly:
+
+```
+redis keys before wipe   : 13553
+redis keys after wipe    : 0
+replayed 590540 events over 13553 cards in 1.9s (306,386 ev/s)
+pushed 13553 card snapshots in 0.6s
+post-rebuild spot check  : 20/20 cards exact
+```
+
+Replaying only the last 7 days sees 17,756 of 590,540 events and is wrong on
+**14 of 19 features**:
+
+| feature | cards wrong | max error |
+|---|---|---|
+| `txn_count_lifetime` | **96.5%** | 14,820 transactions |
+| `amt_sum_7d` | 41.2% | $6,772 |
+| `amt_mean_7d` | 40.2% | $1,010 |
+| `txn_count_7d` | 30.7% | 16 transactions |
+| `product_W_count_7d` | 26.5% | 16 |
+| `amt_max_7d` | 10.6% | $2,270 |
+
+**Two separate reasons, and the second one is the interesting one.**
+
+*The obvious one:* `txn_count_lifetime` and `last_txn_unixtime` have no window
+at all. No bounded replay can reconstruct an unbounded counter.
+
+*The one the reasoning missed:* even the strictly-7d aggregates break, for 41%
+of cards. A rolling window is anchored to **the event being scored**, not to the
+global clock. A card whose most recent transaction was three weeks ago still
+needs everything in the 7 days *before that transaction* — all of which sits
+outside a global 7-day slice. The intuition "the widest window is 7 days, so 7
+days of history suffices" quietly assumes every card is active right up to now.
+On a long-tail entity distribution, most are not.
+
+**Resolution.** `rebuild_state.py` replays the full landing zone by default;
+`--window-days` runs the bounded version and prints the table above rather than
+letting anyone assume it is fine. Full replay costs 1.9s for 590k events, so the
+bounded version optimises nothing worth having.
+
+**Why this one is worth keeping in the list.** Nothing was broken in the running
+system. The bug was entirely in a docstring — a recovery procedure that had
+never been run, describing a shortcut that does not work, for a script that did
+not exist. It survived because documentation is the one part of a project that
+no test executes.

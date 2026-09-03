@@ -47,3 +47,4 @@ reports/*.html
 
 # Secrets
 .env
+.uvicorn.pid
