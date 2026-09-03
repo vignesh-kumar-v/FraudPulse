@@ -45,6 +45,9 @@ reports/*.html
 .vscode/
 *.swp
 
+# Local build log - a working note, not part of the deliverable
+BUILD_SUMMARY.md
+
 # Secrets
 .env
 .uvicorn.pid
