@@ -57,11 +57,20 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["src", "tests"]
+# scripts/ and docker/ import fraudpulse too; without them here ruff resolves
+# the package differently depending on what happens to be on disk, and import
+# sorting comes out different locally vs. in CI.
+src = ["src", "tests", "scripts", "docker"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
 ignore = ["B008", "E501"]
+
+[tool.ruff.lint.isort]
+# Stated rather than inferred. Inference depends on the filesystem layout at
+# lint time, which differs between a working tree with data/ present and a
+# fresh CI checkout - and produces a different import order in each.
+known-first-party = ["fraudpulse"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
