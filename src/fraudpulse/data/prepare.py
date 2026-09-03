@@ -92,9 +92,9 @@ def prepare_events(
             "card_id": "card_" + df["card1"].fillna(-1).astype("int64").astype(str),
             "event_timestamp": epoch + pd.to_timedelta(df["TransactionDT"], unit="s"),
             "amount": df["TransactionAmt"].astype("float64"),
-            "product_cd": df["ProductCD"].astype(str).where(
-                df["ProductCD"].isin(PRODUCT_CODES), "W"
-            ),
+            "product_cd": df["ProductCD"]
+            .astype(str)
+            .where(df["ProductCD"].isin(PRODUCT_CODES), "W"),
             "card_network": df["card4"].fillna("unknown").astype(str),
             "card_type": df["card6"].fillna("unknown").astype(str),
             "email_domain": df["P_emaildomain"].fillna("unknown").astype(str),
@@ -105,8 +105,10 @@ def prepare_events(
     )
 
     if sample_cards is not None:
-        cards = out["card_id"].drop_duplicates().sample(
-            n=min(sample_cards, out["card_id"].nunique()), random_state=seed
+        cards = (
+            out["card_id"]
+            .drop_duplicates()
+            .sample(n=min(sample_cards, out["card_id"].nunique()), random_state=seed)
         )
         before = len(out)
         out = out[out["card_id"].isin(set(cards))].copy()
