@@ -144,15 +144,20 @@ def make_lgbm(params: dict, y_train: pd.Series):
 def fit_model(model_type: str, params: dict, split: Split):
     if model_type == "xgboost":
         m = make_xgb(params, split.y_train)
-        m.fit(split.X_train, split.y_train,
-              eval_set=[(split.X_valid, split.y_valid)], verbose=False)
+        m.fit(
+            split.X_train, split.y_train, eval_set=[(split.X_valid, split.y_valid)], verbose=False
+        )
     elif model_type == "lightgbm":
         import lightgbm as lgb
 
         m = make_lgbm(params, split.y_train)
-        m.fit(split.X_train, split.y_train,
-              eval_set=[(split.X_valid, split.y_valid)], eval_metric="average_precision",
-              callbacks=[lgb.early_stopping(50, verbose=False)])
+        m.fit(
+            split.X_train,
+            split.y_train,
+            eval_set=[(split.X_valid, split.y_valid)],
+            eval_metric="average_precision",
+            callbacks=[lgb.early_stopping(50, verbose=False)],
+        )
     else:
         raise ValueError(f"unknown model_type {model_type!r}")
     return m
@@ -193,9 +198,7 @@ def tune_optuna(model_type: str, split: Split, n_trials: int) -> tuple[dict, flo
     def objective(trial):
         params = suggest(trial, model_type)
         m = fit_model(model_type, params, split)
-        return average_precision_score(
-            split.y_valid, m.predict_proba(split.X_valid)[:, 1]
-        )
+        return average_precision_score(split.y_valid, m.predict_proba(split.X_valid)[:, 1])
 
     t0 = time.perf_counter()
     study = optuna.create_study(
@@ -205,8 +208,13 @@ def tune_optuna(model_type: str, split: Split, n_trials: int) -> tuple[dict, flo
     )
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
     elapsed = time.perf_counter() - t0
-    log.info("[%s] optuna: %d trials in %.1fs, best valid PR-AUC=%.5f",
-             model_type, n_trials, elapsed, study.best_value)
+    log.info(
+        "[%s] optuna: %d trials in %.1fs, best valid PR-AUC=%.5f",
+        model_type,
+        n_trials,
+        elapsed,
+        study.best_value,
+    )
     return study.best_params, float(study.best_value), elapsed
 
 
@@ -236,9 +244,14 @@ def run_training(
 
     for mt in model_types:
         with mlflow.start_run(run_name=f"{mt}-{'ray' if use_ray else 'optuna'}"):
-            mlflow.log_params({"model_type": mt, "n_trials": n_trials,
-                               "tuner": "ray" if use_ray else "optuna",
-                               "n_features": len(ALL_MODEL_INPUTS)})
+            mlflow.log_params(
+                {
+                    "model_type": mt,
+                    "n_trials": n_trials,
+                    "tuner": "ray" if use_ray else "optuna",
+                    "n_features": len(ALL_MODEL_INPUTS),
+                }
+            )
             mlflow.log_params({f"split_{k}": v for k, v in split.describe().items()})
             mlflow.log_metrics(base)
 
@@ -253,9 +266,7 @@ def run_training(
             model = fit_model(mt, params, split)
             fit_s = time.perf_counter() - t0
 
-            test_scores = evaluate(
-                split.y_test.to_numpy(), model.predict_proba(split.X_test)[:, 1]
-            )
+            test_scores = evaluate(split.y_test.to_numpy(), model.predict_proba(split.X_test)[:, 1])
             res = ModelResult(
                 model_type=mt,
                 params=params,
@@ -271,24 +282,29 @@ def run_training(
             results.append(res)
 
             mlflow.log_params({f"best_{k}": v for k, v in params.items()})
-            mlflow.log_metrics({
-                "valid_pr_auc": valid_ap,
-                "test_pr_auc": res.test_pr_auc,
-                "test_roc_auc": res.test_roc_auc,
-                "test_precision_at_recall_50": res.test_precision_at_recall_50,
-                "test_recall_at_precision_90": res.test_recall_at_precision_90,
-                "tuning_seconds": tune_s,
-                "fit_seconds": fit_s,
-                "pr_auc_lift_over_amount_only":
-                    res.test_pr_auc - base["baseline_amount_only_pr_auc"],
-            })
+            mlflow.log_metrics(
+                {
+                    "valid_pr_auc": valid_ap,
+                    "test_pr_auc": res.test_pr_auc,
+                    "test_roc_auc": res.test_roc_auc,
+                    "test_precision_at_recall_50": res.test_precision_at_recall_50,
+                    "test_recall_at_precision_90": res.test_recall_at_precision_90,
+                    "tuning_seconds": tune_s,
+                    "fit_seconds": fit_s,
+                    "pr_auc_lift_over_amount_only": res.test_pr_auc
+                    - base["baseline_amount_only_pr_auc"],
+                }
+            )
             _log_importance(model, mt)
 
             log.info(
                 "[%s] valid PR-AUC=%.5f  test PR-AUC=%.5f  (amount-only baseline %.5f, "
                 "prevalence %.5f)",
-                mt, valid_ap, res.test_pr_auc,
-                base["baseline_amount_only_pr_auc"], base["baseline_prevalence"],
+                mt,
+                valid_ap,
+                res.test_pr_auc,
+                base["baseline_amount_only_pr_auc"],
+                base["baseline_prevalence"],
             )
             if best is None or valid_ap > best[0]:
                 best = (valid_ap, model, res)
@@ -320,8 +336,11 @@ def _log_importance(model, model_type: str) -> None:
         imp = pd.Series(model.feature_importances_, index=ALL_MODEL_INPUTS)
         imp = imp.sort_values(ascending=False)
         mlflow.log_text(imp.to_string(), f"feature_importance_{model_type}.txt")
-        log.info("top features (%s): %s", model_type,
-                 ", ".join(f"{k}={v:.4f}" for k, v in imp.head(8).items()))
+        log.info(
+            "top features (%s): %s",
+            model_type,
+            ", ".join(f"{k}={v:.4f}" for k, v in imp.head(8).items()),
+        )
     except Exception as exc:  # importance is nice-to-have, never fatal
         log.warning("could not log feature importance: %s", exc)
 
@@ -331,10 +350,12 @@ def _register(model, res: ModelResult, split: Split, base: dict) -> None:
     import mlflow
 
     with mlflow.start_run(run_name=f"register-{res.model_type}"):
-        mlflow.log_params({"model_type": res.model_type, **{f"p_{k}": v
-                                                            for k, v in res.params.items()}})
-        mlflow.log_metrics({"test_pr_auc": res.test_pr_auc, "valid_pr_auc": res.valid_pr_auc,
-                            **base})
+        mlflow.log_params(
+            {"model_type": res.model_type, **{f"p_{k}": v for k, v in res.params.items()}}
+        )
+        mlflow.log_metrics(
+            {"test_pr_auc": res.test_pr_auc, "valid_pr_auc": res.valid_pr_auc, **base}
+        )
         signature = mlflow.models.infer_signature(
             split.X_test.head(100), model.predict_proba(split.X_test.head(100))[:, 1]
         )

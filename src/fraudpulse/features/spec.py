@@ -179,9 +179,7 @@ REQUEST_FEATURE_NAMES: list[str] = [
 # early run - signal that cannot possibly generalise.
 STORE_ONLY_FEATURES: frozenset[str] = frozenset({"last_txn_unixtime"})
 
-MODEL_STORE_FEATURE_NAMES: list[str] = [
-    f for f in FEATURE_NAMES if f not in STORE_ONLY_FEATURES
-]
+MODEL_STORE_FEATURE_NAMES: list[str] = [f for f in FEATURE_NAMES if f not in STORE_ONLY_FEATURES]
 
 MODEL_FEATURE_NAMES: list[str] = (
     REQUEST_FEATURE_NAMES + MODEL_STORE_FEATURE_NAMES + ONDEMAND_FEATURE_NAMES

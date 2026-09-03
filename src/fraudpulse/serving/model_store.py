@@ -101,7 +101,8 @@ def load_latest(model_name: str | None = None) -> LoadedModel:
         log.warning(
             "model feature_order differs from the current spec "
             "(model has %d columns, spec has %d). Serving the model's order.",
-            len(order), len(ALL_MODEL_INPUTS),
+            len(order),
+            len(ALL_MODEL_INPUTS),
         )
 
     return LoadedModel(
@@ -123,7 +124,11 @@ def _load_metadata(client, run_id: str) -> dict:
         try:
             path = client.download_artifacts(run_id, "serving_metadata.json", tmp)
         except Exception as exc:
-            log.warning("no serving_metadata.json on run %s (%s); falling back to the "
-                        "current spec, which may not match the model", run_id, exc)
+            log.warning(
+                "no serving_metadata.json on run %s (%s); falling back to the "
+                "current spec, which may not match the model",
+                run_id,
+                exc,
+            )
             return {}
         return json.loads(Path(path).read_text())

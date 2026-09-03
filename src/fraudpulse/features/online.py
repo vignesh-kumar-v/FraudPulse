@@ -217,9 +217,7 @@ class AccountState:
             out[f"amt_sum_{name}"] = w.total
             out[f"amt_mean_{name}"] = w.mean
             out[f"amt_max_{name}"] = w.maximum
-        out["last_txn_unixtime"] = (
-            float(self.last_ts) if self.last_ts is not None else NO_LAST_TXN
-        )
+        out["last_txn_unixtime"] = float(self.last_ts) if self.last_ts is not None else NO_LAST_TXN
         out["txn_count_lifetime"] = self.lifetime
         for pc, idx in _PRODUCT_INDEX.items():
             out[f"product_{pc}_count_7d"] = self.product_counts[idx]

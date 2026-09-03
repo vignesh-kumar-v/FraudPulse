@@ -37,8 +37,11 @@ def print_status() -> None:
     svc.add_column("endpoint")
     svc.add_column("state")
     for name, host, port in [
-        ("kafka (redpanda)", settings.kafka_bootstrap.split(":")[0],
-         int(settings.kafka_bootstrap.split(":")[1])),
+        (
+            "kafka (redpanda)",
+            settings.kafka_bootstrap.split(":")[0],
+            int(settings.kafka_bootstrap.split(":")[1]),
+        ),
         ("redis", settings.redis_host, settings.redis_port),
         ("mlflow", "localhost", int(settings.mlflow_tracking_uri.rsplit(":", 1)[1])),
         ("api", "localhost", 8000),

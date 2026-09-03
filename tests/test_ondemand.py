@@ -56,8 +56,13 @@ def test_cold_start_is_zero_not_inf():
 
 def test_age_is_computed_against_the_request_clock():
     """The same stored row read later must yield a larger age."""
-    stored = {"last_txn_unixtime": 1_000.0, "amt_mean_24h": 10.0, "amt_max_7d": 10.0,
-              "txn_count_7d": 2.0, "product_W_count_7d": 1.0}
+    stored = {
+        "last_txn_unixtime": 1_000.0,
+        "amt_mean_24h": 10.0,
+        "amt_max_7d": 10.0,
+        "txn_count_7d": 2.0,
+        "product_W_count_7d": 1.0,
+    }
     early = compute_ondemand(amount=5.0, product_cd="W", event_unixtime=1_100.0, stored=stored)
     late = compute_ondemand(amount=5.0, product_cd="W", event_unixtime=5_000.0, stored=stored)
     assert early["seconds_since_last_txn"] == 100.0

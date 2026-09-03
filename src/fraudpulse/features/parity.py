@@ -176,9 +176,7 @@ def compare(
     )
 
 
-def run_parity_check(
-    events: pd.DataFrame, *, tie_policy: TiePolicy = "watermark"
-) -> ParityReport:
+def run_parity_check(events: pd.DataFrame, *, tie_policy: TiePolicy = "watermark") -> ParityReport:
     offline = compute_offline_features(events)
     online, engine = replay_online(events, tie_policy=tie_policy)
     if engine.out_of_order:

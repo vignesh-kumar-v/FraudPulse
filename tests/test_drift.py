@@ -79,12 +79,20 @@ def test_injection_preserves_row_count_and_cards(base):
 
 def test_velocity_injection_actually_compresses_time(base):
     out = inject_shift(base, "velocity")
-    gap_before = base.sort_values(["card_id", "event_timestamp"]).groupby("card_id")[
-        "event_timestamp"
-    ].diff().dt.total_seconds().median()
-    gap_after = out.sort_values(["card_id", "event_timestamp"]).groupby("card_id")[
-        "event_timestamp"
-    ].diff().dt.total_seconds().median()
+    gap_before = (
+        base.sort_values(["card_id", "event_timestamp"])
+        .groupby("card_id")["event_timestamp"]
+        .diff()
+        .dt.total_seconds()
+        .median()
+    )
+    gap_after = (
+        out.sort_values(["card_id", "event_timestamp"])
+        .groupby("card_id")["event_timestamp"]
+        .diff()
+        .dt.total_seconds()
+        .median()
+    )
     assert gap_after < gap_before / 5
 
 

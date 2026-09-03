@@ -71,9 +71,21 @@ class Split:
 
 def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.DataFrame:
     """Point-in-time join of labels to features, via the Feast feature service."""
-    entity_df = events[["transaction_id", ENTITY_KEY, EVENT_TS, "amount", "product_cd",
-                        "card_network", "card_type", "email_domain", "addr1", "dist1",
-                        LABEL]].copy()
+    entity_df = events[
+        [
+            "transaction_id",
+            ENTITY_KEY,
+            EVENT_TS,
+            "amount",
+            "product_cd",
+            "card_network",
+            "card_type",
+            "email_domain",
+            "addr1",
+            "dist1",
+            LABEL,
+        ]
+    ].copy()
     # Without this, Feast's point-in-time join drops one of every pair of
     # same-card same-second transactions - 166 rows on IEEE-CIS, 8.4% of them
     # fraud against a 3.50% base rate. See features/timeline.py.
@@ -85,8 +97,11 @@ def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.Da
     if use_feast:
         store = get_store()
         svc = store.get_feature_service(FEATURE_SERVICE)
-        log.info("get_historical_features via feature service '%s' (%d rows)",
-                 FEATURE_SERVICE, len(entity_df))
+        log.info(
+            "get_historical_features via feature service '%s' (%d rows)",
+            FEATURE_SERVICE,
+            len(entity_df),
+        )
         df = store.get_historical_features(entity_df=entity_df, features=svc).to_df()
     else:
         # Escape hatch for CI, where there is no registry. Documented as a
@@ -97,9 +112,11 @@ def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.Da
         log.warning("use_feast=False: bypassing the registry, features come from pandas")
         feats = compute_offline_features(events)
         df = entity_df.merge(
-            feats.drop(columns=[c for c in entity_df.columns if c != "transaction_id"],
-                       errors="ignore"),
-            on="transaction_id", how="left",
+            feats.drop(
+                columns=[c for c in entity_df.columns if c != "transaction_id"], errors="ignore"
+            ),
+            on="transaction_id",
+            how="left",
         )
         df = pd.concat([df, compute_ondemand_frame(df)], axis=1)
 
@@ -124,8 +141,12 @@ def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.Da
             "silently truncated dataset."
         )
 
-    log.info("training set: %d rows, %d features, fraud_rate=%.4f",
-             len(out), len(ALL_MODEL_INPUTS), out[LABEL].mean())
+    log.info(
+        "training set: %d rows, %d features, fraud_rate=%.4f",
+        len(out),
+        len(ALL_MODEL_INPUTS),
+        out[LABEL].mean(),
+    )
     return out
 
 
@@ -168,9 +189,12 @@ def chronological_split(
     y = encoded[LABEL].astype(int)
 
     split = Split(
-        X_train=X.iloc[:i_valid], y_train=y.iloc[:i_valid],
-        X_valid=X.iloc[i_valid:i_test], y_valid=y.iloc[i_valid:i_test],
-        X_test=X.iloc[i_test:], y_test=y.iloc[i_test:],
+        X_train=X.iloc[:i_valid],
+        y_train=y.iloc[:i_valid],
+        X_valid=X.iloc[i_valid:i_test],
+        y_valid=y.iloc[i_valid:i_test],
+        X_test=X.iloc[i_test:],
+        y_test=y.iloc[i_test:],
         boundaries=b,
         categories=categories,
     )

@@ -159,7 +159,11 @@ def loadtest(
     from fraudpulse.serving.loadtest import run_loadtest
 
     run_loadtest(
-        n=n, concurrency=concurrency, processes=processes, base_url=url, explain=explain,
+        n=n,
+        concurrency=concurrency,
+        processes=processes,
+        base_url=url,
+        explain=explain,
         out_path=settings.repo_root / out,
     )
 

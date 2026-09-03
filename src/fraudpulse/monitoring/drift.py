@@ -76,9 +76,7 @@ class DriftResult:
             ((c, self.per_column.get(c, 0.0)) for c in self.drifted_columns),
             key=lambda kv: -abs(kv[1]),
         )[:6]
-        return head + "\n" + "\n".join(
-            f"    {c:<26} drift_score={v:.4g}" for c, v in worst
-        )
+        return head + "\n" + "\n".join(f"    {c:<26} drift_score={v:.4g}" for c, v in worst)
 
 
 def _to_frame(df: pd.DataFrame) -> pd.DataFrame:
@@ -207,7 +205,8 @@ def _extract_column_drift(
         log.warning(
             "drift tally disagrees with Evidently's own DriftedColumnsCount "
             "(ours=%d, theirs=%d) - trusting Evidently",
-            len(drifted), int(evidently_count),
+            len(drifted),
+            int(evidently_count),
         )
     return per_column, sorted(set(drifted)), evidently_count
 
@@ -307,10 +306,16 @@ def run_drift_experiment(
     # Reference is the TRAINING slice only. Using the whole training set would
     # include the very window being tested, which quietly deflates the result.
     ref_slice = training.iloc[:n_ref]
-    reference = pd.concat([ref_slice, compute_ondemand_frame(ref_slice)], axis=1) \
-        if "amt_over_mean_24h" not in ref_slice.columns else ref_slice
-    log.info("reference = first %.0f%% of training features (%d rows)",
-             (1 - tail_frac) * 100, len(reference))
+    reference = (
+        pd.concat([ref_slice, compute_ondemand_frame(ref_slice)], axis=1)
+        if "amt_over_mean_24h" not in ref_slice.columns
+        else ref_slice
+    )
+    log.info(
+        "reference = first %.0f%% of training features (%d rows)",
+        (1 - tail_frac) * 100,
+        len(reference),
+    )
 
     results: list[DriftResult] = []
 
@@ -318,8 +323,12 @@ def run_drift_experiment(
     shuffled = reference.sample(frac=1.0, random_state=7)
     half = len(shuffled) // 2
     results.append(
-        detect_drift(shuffled.iloc[:half], shuffled.iloc[half:], scenario="null",
-                     html_path=out_dir / "drift_null.html")
+        detect_drift(
+            shuffled.iloc[:half],
+            shuffled.iloc[half:],
+            scenario="null",
+            html_path=out_dir / "drift_null.html",
+        )
     )
 
     # --- temporal + injections --------------------------------------------
@@ -358,8 +367,13 @@ def run_drift_experiment(
     out.write_text(json.dumps(verdict, indent=2, default=str))
     log.info("drift experiment %s -> %s", "PASSED" if passed else "FAILED", out)
     for r in results:
-        log.info("  %-10s share=%.3f alert=%s key=%s",
-                 r.scenario, r.drift_share, r.alerted, r.key_features_drifted or "-")
+        log.info(
+            "  %-10s share=%.3f alert=%s key=%s",
+            r.scenario,
+            r.drift_share,
+            r.alerted,
+            r.key_features_drifted or "-",
+        )
     return verdict
 
 
@@ -379,12 +393,16 @@ def detect_on_served_window(*, window: int | None = None) -> DriftResult:
 
     reference = load_or_build()
     served = pd.read_parquet(served_path).tail(window)
-    events = pd.read_parquet(settings.processed_dir / "events.parquet",
-                             columns=["transaction_id", "amount", "product_cd"])
+    events = pd.read_parquet(
+        settings.processed_dir / "events.parquet",
+        columns=["transaction_id", "amount", "product_cd"],
+    )
     served = served.merge(events, on="transaction_id", how="left")
     served = pd.concat([served, compute_ondemand_frame(served)], axis=1)
 
     return detect_drift(
-        reference, served, scenario="served",
+        reference,
+        served,
+        scenario="served",
         html_path=settings.reports_dir / "drift_served.html",
     )

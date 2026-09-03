@@ -76,13 +76,18 @@ async def lifespan(_: FastAPI):
     # first request.
     svc = STATE["store"].get_feature_service(FEATURE_SERVICE)
     STATE["feature_refs"] = [f"card_stats:{f}" for f in FEATURE_NAMES]
-    log.info("feature service '%s' resolved (%d stored features)",
-             svc.name, len(STATE["feature_refs"]))
+    log.info(
+        "feature service '%s' resolved (%d stored features)", svc.name, len(STATE["feature_refs"])
+    )
     try:
         STATE["model"] = load_latest()
-        log.info("model %s v%s ready (%d features, test PR-AUC=%s)",
-                 STATE["model"].model_type, STATE["model"].version,
-                 len(STATE["model"].feature_order), STATE["model"].test_pr_auc)
+        log.info(
+            "model %s v%s ready (%d features, test PR-AUC=%s)",
+            STATE["model"].model_type,
+            STATE["model"].version,
+            len(STATE["model"].feature_order),
+            STATE["model"].test_pr_auc,
+        )
     except Exception as exc:
         log.error("could not load model: %s", exc)
         STATE["model"] = None
@@ -115,10 +120,14 @@ def _fetch_online(card_id: str) -> tuple[dict[str, float], bool]:
     """Stored features for one card. Returns (features, found_in_store)."""
     # The feature service also contains the on-demand view, which needs request
     # data we handle ourselves; ask for the stored columns only.
-    resp = STATE["store"].get_online_features(
-        features=STATE["feature_refs"],
-        entity_rows=[{ENTITY_KEY: card_id}],
-    ).to_dict()
+    resp = (
+        STATE["store"]
+        .get_online_features(
+            features=STATE["feature_refs"],
+            entity_rows=[{ENTITY_KEY: card_id}],
+        )
+        .to_dict()
+    )
 
     out: dict[str, float] = {}
     found = False
@@ -147,8 +156,10 @@ def _score_one(req: ScoreRequest) -> ScoreResponse:
 
     t_feat = time.perf_counter()
     ondemand = compute_ondemand(
-        amount=req.amount, product_cd=req.product_cd,
-        event_unixtime=event_unix, stored=stored,
+        amount=req.amount,
+        product_cd=req.product_cd,
+        event_unixtime=event_unix,
+        stored=stored,
     )
     row: dict[str, Any] = {
         **stored,
@@ -192,9 +203,9 @@ def _score_one(req: ScoreRequest) -> ScoreResponse:
         feature_source="online_store" if found else "cold_start",
         latency_ms=latency_ms,
         features_used=(
-            {k: float(v) for k, v in row.items()
-             if isinstance(v, (int, float)) and v is not None}
-            if req.include_features else None
+            {k: float(v) for k, v in row.items() if isinstance(v, (int, float)) and v is not None}
+            if req.include_features
+            else None
         ),
         explanation=explanation,
     )

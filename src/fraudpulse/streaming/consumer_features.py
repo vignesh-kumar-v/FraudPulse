@@ -69,9 +69,7 @@ def _to_push_frame(rows: list[dict]) -> pd.DataFrame:
     # Keep the newest row per card. Sorting first matters: pending is appended in
     # arrival order, and with six partitions interleaved that is NOT event-time
     # order, so "last in the list" is not "latest in time".
-    df = df.sort_values(EVENT_TS, kind="stable").drop_duplicates(
-        subset=[ENTITY_KEY], keep="last"
-    )
+    df = df.sort_values(EVENT_TS, kind="stable").drop_duplicates(subset=[ENTITY_KEY], keep="last")
     df["created"] = pd.Timestamp.utcnow().tz_localize(None)
     for name, dtype in FEATURE_DTYPES.items():
         df[name] = df[name].astype(dtype)
@@ -188,8 +186,11 @@ def run(
             stats.skipped_empty += 1
             return
         pending.append(
-            {ENTITY_KEY: card, EVENT_TS: pd.Timestamp(ts, unit="s"),
-             **engine.state_for(card).snapshot()}
+            {
+                ENTITY_KEY: card,
+                EVENT_TS: pd.Timestamp(ts, unit="s"),
+                **engine.state_for(card).snapshot(),
+            }
         )
 
     def _refresh_released() -> None:
@@ -280,8 +281,9 @@ def run(
     if capture_scoring_view is not None and stats.scoring_rows:
         capture_scoring_view.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(stats.scoring_rows).to_parquet(capture_scoring_view, index=False)
-        log.info("captured %d scoring-view rows -> %s", len(stats.scoring_rows),
-                 capture_scoring_view)
+        log.info(
+            "captured %d scoring-view rows -> %s", len(stats.scoring_rows), capture_scoring_view
+        )
 
     log.info(
         "features done: consumed=%d pushed=%d cards=%d out_of_order=%d "

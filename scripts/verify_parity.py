@@ -49,9 +49,7 @@ def compare_served_vs_offline() -> dict:
     served = pd.read_parquet(served_path).set_index("transaction_id")
 
     common = offline.index.intersection(served.index)
-    log.info(
-        "offline rows=%d served rows=%d overlap=%d", len(offline), len(served), len(common)
-    )
+    log.info("offline rows=%d served rows=%d overlap=%d", len(offline), len(served), len(common))
     if len(common) != len(offline):
         log.error(
             "COVERAGE GAP: %d events never produced an online feature vector",
@@ -66,8 +64,8 @@ def compare_served_vs_offline() -> dict:
     for name in FEATURE_NAMES:
         a = off[name].to_numpy(np.float64)
         b = onl[name].to_numpy(np.float64)
-        bad = (a != b) if FEATURE_DTYPES[name] == "int64" else ~np.isclose(
-            a, b, rtol=RTOL, atol=ATOL
+        bad = (
+            (a != b) if FEATURE_DTYPES[name] == "int64" else ~np.isclose(a, b, rtol=RTOL, atol=ATOL)
         )
         any_bad |= bad
         if bad.any():
@@ -107,12 +105,16 @@ def spot_check_online_store(n: int = N_SPOT_CHECKS, seed: int = 0) -> dict:
     # the spot check rather than report a mismatch the system did not commit.
     at_max = events.merge(
         events.groupby(ENTITY_KEY)[EVENT_TS].max().rename("_max"),
-        left_on=ENTITY_KEY, right_index=True,
+        left_on=ENTITY_KEY,
+        right_index=True,
     )
     n_at_max = at_max[at_max[EVENT_TS] == at_max["_max"]].groupby(ENTITY_KEY).size()
     eligible = last_rows.index.intersection(n_at_max[n_at_max == 1].index)
-    log.info("spot-check pool: %d of %d cards have an unambiguous last event",
-             len(eligible), len(last_rows))
+    log.info(
+        "spot-check pool: %d of %d cards have an unambiguous last event",
+        len(eligible),
+        len(last_rows),
+    )
 
     rng = np.random.default_rng(seed)
     cards = list(rng.choice(eligible.to_numpy(), size=min(n, len(eligible)), replace=False))

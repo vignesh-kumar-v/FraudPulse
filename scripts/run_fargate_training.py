@@ -42,8 +42,7 @@ def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
 
 
 def terraform_outputs(tf_dir: Path) -> dict:
-    p = subprocess.run(["terraform", "output", "-json"], cwd=tf_dir,
-                       capture_output=True, text=True)
+    p = subprocess.run(["terraform", "output", "-json"], cwd=tf_dir, capture_output=True, text=True)
     if p.returncode != 0:
         raise RuntimeError(f"terraform output failed in {tf_dir}:\n{p.stderr}")
     return {k: v["value"] for k, v in json.loads(p.stdout).items()}
@@ -54,8 +53,7 @@ def upload_training_set(s3, bucket: str) -> int:
     if not path.exists():
         raise FileNotFoundError(f"{path} missing - run `make train` first.")
     size = path.stat().st_size
-    log.info("uploading %s (%.1f MB) -> s3://%s/%s", path.name, size / 1e6, bucket,
-             TRAINING_KEY)
+    log.info("uploading %s (%.1f MB) -> s3://%s/%s", path.name, size / 1e6, bucket, TRAINING_KEY)
     s3.upload_file(str(path), bucket, TRAINING_KEY)
     return size
 
@@ -66,18 +64,31 @@ def build_and_push(repo_url: str, region: str, arch: str) -> str:
     token = ecr.get_authorization_token()["authorizationData"][0]["authorizationToken"]
     user, password = base64.b64decode(token).decode().split(":", 1)
 
-    _run(["docker", "login", "--username", user, "--password-stdin", registry],
-         input=password)
+    _run(["docker", "login", "--username", user, "--password-stdin", registry], input=password)
 
     platform = "linux/arm64" if arch == "ARM64" else "linux/amd64"
     tag = f"{repo_url}:latest"
     # --provenance=false: buildx otherwise pushes an OCI image index with an
     # attestation manifest, and ECS refuses to pull it ("image manifest is not
     # supported"). The failure appears as a stopped task with no logs.
-    _run(["docker", "buildx", "build", "--platform", platform,
-          "--provenance=false", "--sbom=false",
-          "-f", "docker/Dockerfile.trainer", "-t", tag, "--push", "."],
-         cwd=settings.repo_root)
+    _run(
+        [
+            "docker",
+            "buildx",
+            "build",
+            "--platform",
+            platform,
+            "--provenance=false",
+            "--sbom=false",
+            "-f",
+            "docker/Dockerfile.trainer",
+            "-t",
+            tag,
+            "--push",
+            ".",
+        ],
+        cwd=settings.repo_root,
+    )
     return tag
 
 
@@ -115,8 +126,11 @@ def wait_and_stream(ecs, logs, tf: dict, task_arn: str, poll: int = 10) -> dict:
         status = d["lastStatus"]
 
         try:
-            kw = {"logGroupName": tf["ecs_log_group"], "logStreamName": stream,
-                  "startFromHead": True}
+            kw = {
+                "logGroupName": tf["ecs_log_group"],
+                "logStreamName": stream,
+                "startFromHead": True,
+            }
             if token:
                 kw["nextToken"] = token
             ev = logs.get_log_events(**kw)
@@ -199,8 +213,12 @@ def main() -> int:
     out.write_text(json.dumps(result, indent=2))
 
     log.info("task %s in %.0fs, est $%.4f", outcome["exit_code"], task_seconds, cost)
-    log.info("cloud test PR-AUC=%.5f  local=%s  delta=%s",
-             metrics["test_pr_auc"], local, result["cloud_vs_local_pr_auc_delta"])
+    log.info(
+        "cloud test PR-AUC=%.5f  local=%s  delta=%s",
+        metrics["test_pr_auc"],
+        local,
+        result["cloud_vs_local_pr_auc_delta"],
+    )
     log.info("wrote %s", out)
     return 0
 

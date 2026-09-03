@@ -49,9 +49,7 @@ def topic_offsets(name: str | None = None) -> dict[int, int]:
     from confluent_kafka import Consumer, TopicPartition
 
     name = name or settings.kafka_topic
-    c = Consumer(
-        {"bootstrap.servers": settings.kafka_bootstrap, "group.id": "fp-offsets-probe"}
-    )
+    c = Consumer({"bootstrap.servers": settings.kafka_bootstrap, "group.id": "fp-offsets-probe"})
     try:
         md = c.list_topics(name, timeout=10)
         out: dict[int, int] = {}

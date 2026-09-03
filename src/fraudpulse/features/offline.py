@@ -152,7 +152,9 @@ def compute_offline_features(
             out[f"amt_sum_{wname}"][rows] = total
             with np.errstate(invalid="ignore", divide="ignore"):
                 out[f"amt_mean_{wname}"][rows] = np.where(cnt > 0, total / np.maximum(cnt, 1), 0.0)
-            out[f"amt_max_{wname}"][rows] = [rmq.query(int(a), int(b)) for a, b in zip(lo, hi, strict=True)]
+            out[f"amt_max_{wname}"][rows] = [
+                rmq.query(int(a), int(b)) for a, b in zip(lo, hi, strict=True)
+            ]
 
             if wname == "7d":
                 for pc in PRODUCT_CODES:

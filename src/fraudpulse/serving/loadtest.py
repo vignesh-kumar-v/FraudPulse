@@ -44,11 +44,25 @@ def _sample_cards(n: int) -> list[dict]:
 
     path = settings.processed_dir / "events.parquet"
     if not path.exists():
-        log.warning("%s missing; load-testing with synthetic card ids (cold-start path "
-                    "only - the numbers will be optimistic)", path)
+        log.warning(
+            "%s missing; load-testing with synthetic card ids (cold-start path "
+            "only - the numbers will be optimistic)",
+            path,
+        )
         return [{"card_id": f"card_{i}", "amount": 100.0, "product_cd": "W"} for i in range(n)]
-    df = pd.read_parquet(path, columns=["card_id", "amount", "product_cd", "card_network",
-                                        "card_type", "email_domain", "addr1", "dist1"])
+    df = pd.read_parquet(
+        path,
+        columns=[
+            "card_id",
+            "amount",
+            "product_cd",
+            "card_network",
+            "card_type",
+            "email_domain",
+            "addr1",
+            "dist1",
+        ],
+    )
     sample = df.sample(n=min(n, len(df)), random_state=0)
     return sample.to_dict("records")
 
@@ -100,17 +114,19 @@ async def _run(n: int, concurrency: int, base_url: str, explain: bool) -> dict:
         return None if np.isnan(f) or np.isinf(f) else f
 
     for i, r in enumerate(rows):
-        queue.put_nowait({
-            "transaction_id": i,
-            "card_id": str(r["card_id"]),
-            "amount": float(r["amount"]),
-            "product_cd": str(r.get("product_cd", "W")),
-            "card_network": str(r.get("card_network", "unknown")),
-            "card_type": str(r.get("card_type", "unknown")),
-            "email_domain": str(r.get("email_domain", "unknown")),
-            "addr1": _num(r.get("addr1")),
-            "dist1": _num(r.get("dist1")),
-        })
+        queue.put_nowait(
+            {
+                "transaction_id": i,
+                "card_id": str(r["card_id"]),
+                "amount": float(r["amount"]),
+                "product_cd": str(r.get("product_cd", "W")),
+                "card_network": str(r.get("card_network", "unknown")),
+                "card_type": str(r.get("card_type", "unknown")),
+                "email_domain": str(r.get("email_domain", "unknown")),
+                "addr1": _num(r.get("addr1")),
+                "dist1": _num(r.get("dist1")),
+            }
+        )
 
     client_ms: list[float] = []
     server_ms: list[float] = []
@@ -121,10 +137,12 @@ async def _run(n: int, concurrency: int, base_url: str, explain: bool) -> dict:
         # warm the connection pool so TCP/TLS setup does not land in the sample
         await client.get(f"{base_url}/health")
         t0 = time.perf_counter()
-        await asyncio.gather(*[
-            _worker(client, queue, base_url, explain, client_ms, server_ms, errors)
-            for _ in range(concurrency)
-        ])
+        await asyncio.gather(
+            *[
+                _worker(client, queue, base_url, explain, client_ms, server_ms, errors)
+                for _ in range(concurrency)
+            ]
+        )
         wall = time.perf_counter() - t0
 
     return {
@@ -171,8 +189,11 @@ def _merge(parts: list[dict]) -> dict:
 
 
 def run_loadtest(
-    *, n: int = 2_000, concurrency: int = 16,
-    base_url: str = "http://localhost:8000", explain: bool = False,
+    *,
+    n: int = 2_000,
+    concurrency: int = 16,
+    base_url: str = "http://localhost:8000",
+    explain: bool = False,
     processes: int = 1,
     out_path: Path | None = None,
 ) -> dict:
@@ -192,13 +213,28 @@ def run_loadtest(
     c, s = result["client_latency"], result["server_latency"]
     log.info(
         "%d req @ concurrency=%d x %d proc, explain=%s -> %.0f rps, %d errors",
-        n, concurrency, processes, explain, result["throughput_rps"], result["errors"],
+        n,
+        concurrency,
+        processes,
+        explain,
+        result["throughput_rps"],
+        result["errors"],
     )
     if c:
-        log.info("client p50=%.2fms p95=%.2fms p99=%.2fms max=%.2fms",
-                 c["p50_ms"], c["p95_ms"], c["p99_ms"], c["max_ms"])
-        log.info("server p50=%.2fms p95=%.2fms p99=%.2fms max=%.2fms",
-                 s["p50_ms"], s["p95_ms"], s["p99_ms"], s["max_ms"])
+        log.info(
+            "client p50=%.2fms p95=%.2fms p99=%.2fms max=%.2fms",
+            c["p50_ms"],
+            c["p95_ms"],
+            c["p99_ms"],
+            c["max_ms"],
+        )
+        log.info(
+            "server p50=%.2fms p95=%.2fms p99=%.2fms max=%.2fms",
+            s["p50_ms"],
+            s["p95_ms"],
+            s["p99_ms"],
+            s["max_ms"],
+        )
 
     if out_path:
         out_path.parent.mkdir(parents=True, exist_ok=True)

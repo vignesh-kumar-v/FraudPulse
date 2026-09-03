@@ -64,8 +64,7 @@ def terraform_outputs(tf_dir: Path) -> dict:
 
 def _to_sagemaker_csv(X: pd.DataFrame, y: pd.Series) -> bytes:
     """SageMaker XGBoost wants headerless CSV with the label in column 0."""
-    frame = pd.concat([y.rename("label").reset_index(drop=True),
-                       X.reset_index(drop=True)], axis=1)
+    frame = pd.concat([y.rename("label").reset_index(drop=True), X.reset_index(drop=True)], axis=1)
     buf = io.StringIO()
     frame.to_csv(buf, header=False, index=False)
     return buf.getvalue().encode()
@@ -76,20 +75,39 @@ def upload_splits(s3, bucket: str, prefix: str) -> tuple[str, str, dict]:
     train_key = f"{prefix}/train/train.csv"
     valid_key = f"{prefix}/validation/validation.csv"
 
-    log.info("uploading train (%d rows) and validation (%d rows) to s3://%s/%s",
-             len(split.X_train), len(split.X_valid), bucket, prefix)
-    s3.put_object(Bucket=bucket, Key=train_key,
-                  Body=_to_sagemaker_csv(split.X_train, split.y_train))
-    s3.put_object(Bucket=bucket, Key=valid_key,
-                  Body=_to_sagemaker_csv(split.X_valid, split.y_valid))
-    return (f"s3://{bucket}/{prefix}/train/",
-            f"s3://{bucket}/{prefix}/validation/",
-            {"split": split.describe(), "n_features": split.X_train.shape[1]})
+    log.info(
+        "uploading train (%d rows) and validation (%d rows) to s3://%s/%s",
+        len(split.X_train),
+        len(split.X_valid),
+        bucket,
+        prefix,
+    )
+    s3.put_object(
+        Bucket=bucket, Key=train_key, Body=_to_sagemaker_csv(split.X_train, split.y_train)
+    )
+    s3.put_object(
+        Bucket=bucket, Key=valid_key, Body=_to_sagemaker_csv(split.X_valid, split.y_valid)
+    )
+    return (
+        f"s3://{bucket}/{prefix}/train/",
+        f"s3://{bucket}/{prefix}/validation/",
+        {"split": split.describe(), "n_features": split.X_train.shape[1]},
+    )
 
 
-def submit(sm, *, job_name: str, image: str, role: str, instance_type: str,
-           train_uri: str, valid_uri: str, output_uri: str, pos_weight: float,
-           max_runtime: int) -> None:
+def submit(
+    sm,
+    *,
+    job_name: str,
+    image: str,
+    role: str,
+    instance_type: str,
+    train_uri: str,
+    valid_uri: str,
+    output_uri: str,
+    pos_weight: float,
+    max_runtime: int,
+) -> None:
     sm.create_training_job(
         TrainingJobName=job_name,
         AlgorithmSpecification={"TrainingImage": image, "TrainingInputMode": "File"},
@@ -110,20 +128,25 @@ def submit(sm, *, job_name: str, image: str, role: str, instance_type: str,
         InputDataConfig=[
             {
                 "ChannelName": ch,
-                "DataSource": {"S3DataSource": {
-                    "S3DataType": "S3Prefix", "S3Uri": uri, "S3DataDistributionType": "FullyReplicated",
-                }},
+                "DataSource": {
+                    "S3DataSource": {
+                        "S3DataType": "S3Prefix",
+                        "S3Uri": uri,
+                        "S3DataDistributionType": "FullyReplicated",
+                    }
+                },
                 "ContentType": "text/csv",
                 "CompressionType": "None",
             }
             for ch, uri in (("train", train_uri), ("validation", valid_uri))
         ],
         OutputDataConfig={"S3OutputPath": output_uri},
-        ResourceConfig={"InstanceType": instance_type, "InstanceCount": 1,
-                        "VolumeSizeInGB": 10},
+        ResourceConfig={"InstanceType": instance_type, "InstanceCount": 1, "VolumeSizeInGB": 10},
         StoppingCondition={"MaxRuntimeInSeconds": max_runtime},
-        Tags=[{"Key": "Project", "Value": "fraudpulse"},
-              {"Key": "ManagedBy", "Value": "scripts/sagemaker_train.py"}],
+        Tags=[
+            {"Key": "Project", "Value": "fraudpulse"},
+            {"Key": "ManagedBy", "Value": "scripts/sagemaker_train.py"},
+        ],
     )
 
 
@@ -141,10 +164,17 @@ def wait(sm, job_name: str, poll_s: int = 20) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tf-dir", type=Path, default=settings.repo_root / "terraform")
-    ap.add_argument("--max-runtime", type=int, default=1800,
-                    help="Hard stop, in seconds. Caps the bill on a hung job.")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="Upload the data and print the job spec without submitting.")
+    ap.add_argument(
+        "--max-runtime",
+        type=int,
+        default=1800,
+        help="Hard stop, in seconds. Caps the bill on a hung job.",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Upload the data and print the job spec without submitting.",
+    )
     args = ap.parse_args()
 
     tf = terraform_outputs(args.tf_dir)
@@ -164,19 +194,31 @@ def main() -> int:
     pos_weight = (len(split.y_train) - pos) / max(pos, 1.0)
 
     job_name = f"fraudpulse-{int(time.time())}"
-    log.info("job=%s image=%s instance=%s role=%s",
-             job_name, image.rsplit("/", 1)[-1], tf["training_instance_type"],
-             tf["sagemaker_role_arn"].rsplit("/", 1)[-1])
+    log.info(
+        "job=%s image=%s instance=%s role=%s",
+        job_name,
+        image.rsplit("/", 1)[-1],
+        tf["training_instance_type"],
+        tf["sagemaker_role_arn"].rsplit("/", 1)[-1],
+    )
 
     if args.dry_run:
         log.info("dry run: not submitting. inputs=%s meta=%s", train_uri, meta)
         return 0
 
     t0 = time.perf_counter()
-    submit(sm, job_name=job_name, image=image, role=tf["sagemaker_role_arn"],
-           instance_type=tf["training_instance_type"], train_uri=train_uri,
-           valid_uri=valid_uri, output_uri=output_uri, pos_weight=pos_weight,
-           max_runtime=args.max_runtime)
+    submit(
+        sm,
+        job_name=job_name,
+        image=image,
+        role=tf["sagemaker_role_arn"],
+        instance_type=tf["training_instance_type"],
+        train_uri=train_uri,
+        valid_uri=valid_uri,
+        output_uri=output_uri,
+        pos_weight=pos_weight,
+        max_runtime=args.max_runtime,
+    )
     desc = wait(sm, job_name)
     wall = time.perf_counter() - t0
 

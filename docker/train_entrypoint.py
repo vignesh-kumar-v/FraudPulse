@@ -107,14 +107,25 @@ def main() -> int:
     spw = (i_valid - pos) / max(pos, 1.0)
 
     model = xgb.XGBClassifier(
-        n_estimators=1500, max_depth=6, learning_rate=0.08,
-        subsample=0.9, colsample_bytree=0.9, scale_pos_weight=spw,
-        tree_method="hist", eval_metric="aucpr", early_stopping_rounds=50,
-        n_jobs=-1, random_state=RANDOM_STATE,
+        n_estimators=1500,
+        max_depth=6,
+        learning_rate=0.08,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        scale_pos_weight=spw,
+        tree_method="hist",
+        eval_metric="aucpr",
+        early_stopping_rounds=50,
+        n_jobs=-1,
+        random_state=RANDOM_STATE,
     )
     t0 = time.perf_counter()
-    model.fit(X.iloc[:i_valid], y.iloc[:i_valid],
-              eval_set=[(X.iloc[i_valid:i_test], y.iloc[i_valid:i_test])], verbose=False)
+    model.fit(
+        X.iloc[:i_valid],
+        y.iloc[:i_valid],
+        eval_set=[(X.iloc[i_valid:i_test], y.iloc[i_valid:i_test])],
+        verbose=False,
+    )
     fit_s = time.perf_counter() - t0
     log(f"fit in {fit_s:.1f}s, best_iteration={model.best_iteration}")
 
@@ -144,7 +155,8 @@ def main() -> int:
     with open(model_path, "rb") as fh:
         s3.put_object(Bucket=BUCKET, Key=f"{OUTPUT_PREFIX}/model.json", Body=fh.read())
     s3.put_object(
-        Bucket=BUCKET, Key=f"{OUTPUT_PREFIX}/metrics.json",
+        Bucket=BUCKET,
+        Key=f"{OUTPUT_PREFIX}/metrics.json",
         Body=json.dumps(metrics, indent=2).encode(),
         ContentType="application/json",
     )

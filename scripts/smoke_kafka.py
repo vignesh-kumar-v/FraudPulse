@@ -68,8 +68,12 @@ def main() -> int:
             got = json.loads(msg.value())
             if got.get("token") == token:
                 rtt = (time.time() - got["sent_at"]) * 1000
-                log.info("round-trip OK in %.1f ms  (partition=%d offset=%d)",
-                         rtt, msg.partition(), msg.offset())
+                log.info(
+                    "round-trip OK in %.1f ms  (partition=%d offset=%d)",
+                    rtt,
+                    msg.partition(),
+                    msg.offset(),
+                )
                 return 0
     finally:
         consumer.close()

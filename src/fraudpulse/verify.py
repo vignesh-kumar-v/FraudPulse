@@ -45,8 +45,10 @@ def _check_services() -> tuple[bool, str]:
     import socket
 
     targets = {
-        "kafka": (settings.kafka_bootstrap.split(":")[0],
-                  int(settings.kafka_bootstrap.split(":")[1])),
+        "kafka": (
+            settings.kafka_bootstrap.split(":")[0],
+            int(settings.kafka_bootstrap.split(":")[1]),
+        ),
         "redis": (settings.redis_host, settings.redis_port),
         "mlflow": ("localhost", int(settings.mlflow_tracking_uri.rsplit(":", 1)[1])),
     }
@@ -89,7 +91,9 @@ def _check_online_store() -> tuple[bool, str]:
 
     proc = subprocess.run(
         [sys.executable, str(settings.repo_root / "scripts" / "verify_parity.py")],
-        capture_output=True, text=True, cwd=settings.repo_root,
+        capture_output=True,
+        text=True,
+        cwd=settings.repo_root,
     )
     path = settings.reports_dir / "parity_e2e.json"
     if not path.exists():
@@ -164,19 +168,31 @@ def run_all() -> bool:
     table.add_column("time", justify="right")
     for r in results:
         table.add_row(
-            r.phase, r.name,
+            r.phase,
+            r.name,
             "[green]PASS[/green]" if r.passed else "[red]FAIL[/red]",
-            r.detail, f"{r.seconds:.1f}s",
+            r.detail,
+            f"{r.seconds:.1f}s",
         )
     console.print(table)
 
     out = settings.reports_dir / "verification.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(
-        [{"phase": r.phase, "check": r.name, "passed": r.passed,
-          "detail": r.detail, "seconds": r.seconds} for r in results],
-        indent=2,
-    ))
+    out.write_text(
+        json.dumps(
+            [
+                {
+                    "phase": r.phase,
+                    "check": r.name,
+                    "passed": r.passed,
+                    "detail": r.detail,
+                    "seconds": r.seconds,
+                }
+                for r in results
+            ],
+            indent=2,
+        )
+    )
     n_pass = sum(r.passed for r in results)
     console.print(f"\n{n_pass}/{len(results)} checks passed -> {out}")
     return n_pass == len(results)

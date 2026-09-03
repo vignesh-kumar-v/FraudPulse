@@ -70,12 +70,18 @@ def tune_ray(
     cores = os.cpu_count() or 4
     concurrency = concurrency or max(2, min(6, cores // 2))
     threads_per_trial = max(1, cores // concurrency)
-    log.info("ray tune: %d trials, concurrency=%d, %d threads/trial (%d cores)",
-             n_trials, concurrency, threads_per_trial, cores)
+    log.info(
+        "ray tune: %d trials, concurrency=%d, %d threads/trial (%d cores)",
+        n_trials,
+        concurrency,
+        threads_per_trial,
+        cores,
+    )
 
     if not ray.is_initialized():
-        ray.init(num_cpus=cores, log_to_driver=False, include_dashboard=False,
-                 ignore_reinit_error=True)
+        ray.init(
+            num_cpus=cores, log_to_driver=False, include_dashboard=False, ignore_reinit_error=True
+        )
 
     # Put the split in the object store once instead of pickling it into every
     # trial. Without this, each trial ships ~100MB of DataFrame and the
@@ -86,9 +92,14 @@ def tune_ray(
         from fraudpulse.training.train import fit_model
 
         s: Split = ray.get(handle)
-        params = {k: (int(v) if k in {"max_depth", "num_leaves", "min_child_samples",
-                                      "n_estimators"} else v)
-                  for k, v in config.items()}
+        params = {
+            k: (
+                int(v)
+                if k in {"max_depth", "num_leaves", "min_child_samples", "n_estimators"}
+                else v
+            )
+            for k, v in config.items()
+        }
         params["n_jobs"] = threads_per_trial
         model = fit_model(model_type, params, s)
         score = average_precision_score(s.y_valid, model.predict_proba(s.X_valid)[:, 1])
@@ -117,9 +128,7 @@ def tune_ray(
     return params, score, elapsed
 
 
-def compare_sequential_vs_parallel(
-    model_type: str = "xgboost", n_trials: int = 20
-) -> dict:
+def compare_sequential_vs_parallel(model_type: str = "xgboost", n_trials: int = 20) -> dict:
     """Phase 5 verification: measured wall-clock, both ways, same search space.
 
     Reports the real number including Ray's startup cost, because that cost is
@@ -151,9 +160,13 @@ def compare_sequential_vs_parallel(
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2))
     log.info(
-        "HPO %d trials: optuna %.1fs (PR-AUC %.5f) vs ray %.1fs (PR-AUC %.5f) "
-        "-> %.2fx wall-clock",
-        n_trials, seq_s, seq_score, par_s, par_score, result["speedup"],
+        "HPO %d trials: optuna %.1fs (PR-AUC %.5f) vs ray %.1fs (PR-AUC %.5f) -> %.2fx wall-clock",
+        n_trials,
+        seq_s,
+        seq_score,
+        par_s,
+        par_score,
+        result["speedup"],
     )
     return result
 

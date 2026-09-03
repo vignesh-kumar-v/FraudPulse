@@ -59,14 +59,15 @@ def tiebreak_timestamps(
     """Return ``ts_col`` with a per-(entity, second) microsecond tiebreaker added."""
     ts = pd.to_datetime(df[ts_col])
     rank = (
-        df.groupby([entity_col, ts], sort=False)[order_col].rank(method="first").astype("int64")
-        - 1
+        df.groupby([entity_col, ts], sort=False)[order_col].rank(method="first").astype("int64") - 1
     )
     n_tied = int((rank > 0).sum())
     if n_tied:
         log.info(
             "tiebreaking %d rows that share a (%s, %s) with another transaction",
-            n_tied, entity_col, ts_col,
+            n_tied,
+            entity_col,
+            ts_col,
         )
     if rank.max() >= _MAX_TIES:
         raise ValueError(

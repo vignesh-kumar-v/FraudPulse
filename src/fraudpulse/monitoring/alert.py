@@ -23,15 +23,18 @@ def fire(title: str, body: str, *, severity: str = "warning") -> bool:
 
     if not settings.slack_webhook_url:
         return False
-    payload = json.dumps({
-        "text": f"*{title}*",
-        "blocks": [
-            {"type": "header", "text": {"type": "plain_text", "text": f"FraudPulse: {title}"}},
-            {"type": "section", "text": {"type": "mrkdwn", "text": f"```{body}```"}},
-        ],
-    }).encode()
+    payload = json.dumps(
+        {
+            "text": f"*{title}*",
+            "blocks": [
+                {"type": "header", "text": {"type": "plain_text", "text": f"FraudPulse: {title}"}},
+                {"type": "section", "text": {"type": "mrkdwn", "text": f"```{body}```"}},
+            ],
+        }
+    ).encode()
     req = urllib.request.Request(
-        settings.slack_webhook_url, data=payload,
+        settings.slack_webhook_url,
+        data=payload,
         headers={"Content-Type": "application/json"},
     )
     try:

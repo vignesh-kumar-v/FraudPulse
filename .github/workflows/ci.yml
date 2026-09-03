@@ -1,0 +1,102 @@
+name: ci
+
+# The test suite deliberately needs neither Docker nor the Kaggle dataset: every
+# fixture is built by fraudpulse.data.synthetic, which generates the awkward
+# cases on purpose (duplicate timestamps, long idle gaps, single-transaction
+# cards). That keeps CI honest and fast, and it means a fresh clone can run
+# `make test` before it can run anything else.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install -q --upgrade pip
+          pip install -q -e ".[dev]"
+
+      - name: Lint
+        run: ruff check src tests scripts docker
+
+      - name: Format check
+        run: ruff format --check src tests scripts docker
+
+      - name: Test
+        run: pytest -q --cov=fraudpulse --cov-report=term-missing
+
+      - name: Parity check on synthetic data
+        # The headline claim of the project, re-verified on every push. Uses the
+        # synthetic generator rather than IEEE-CIS, so it needs no credentials -
+        # and the synthetic fixture has a *higher* duplicate-timestamp rate than
+        # the real data, which makes it the harder case.
+        run: |
+          python - <<'PY'
+          import sys
+          from fraudpulse.data.synthetic import make_events
+          from fraudpulse.features.parity import run_parity_check
+
+          events = make_events(n_cards=300, n_events=20_000, seed=2024)
+          strict = run_parity_check(events, tie_policy="watermark")
+          naive = run_parity_check(events, tie_policy="arrival")
+
+          print(strict.summary())
+          print(naive.summary())
+
+          if not strict.passed:
+              sys.exit("watermark policy must be exact")
+          if naive.passed:
+              sys.exit("arrival policy must still diverge, or the check is vacuous")
+          PY
+
+  terraform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+      - name: Format
+        run: terraform -chdir=terraform fmt -check -recursive
+      - name: Validate
+        # No credentials needed: init -backend=false + validate checks the
+        # config against the real provider schema without touching an account.
+        run: |
+          terraform -chdir=terraform init -backend=false -input=false
+          terraform -chdir=terraform validate
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the trainer image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.trainer
+          platforms: linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
