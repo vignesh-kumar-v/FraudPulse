@@ -316,3 +316,39 @@ temporal floor — otherwise "it fired" would only mean "time passed".
 **Worth stating plainly:** this project's own model degrades across that same
 drift. Validation PR-AUC 0.212, test PR-AUC 0.172 — measured on a chronological
 split, so the gap is that six-month movement showing up in the metric.
+
+---
+
+## #10 — Distributed HPO bought 1.65x, not 6x, and the reason matters
+
+**Setup.** 20 trials, identical search space and identical Optuna TPE sampler,
+same 15-core machine. Only the execution changes: sequential Optuna, versus Ray
+Tune with `max_concurrent_trials=6` and each trial capped at
+`n_jobs = cores // concurrency = 2`.
+
+**Result.**
+
+```
+sequential (optuna)  149.0s   best valid PR-AUC 0.20885
+parallel   (ray)      90.2s   best valid PR-AUC 0.21035
+                    -> 1.65x wall-clock
+```
+
+**Why it is not 6x, and why that was predictable.** XGBoost's `hist` tree method
+already parallelises across cores. The sequential run was *not* leaving 14 cores
+idle — it was using all 15 for every trial. Running six trials at once does not
+add compute, it partitions the same compute six ways. The gain comes only from
+the parts of a trial that do not parallelise well (data setup, early-stopping
+bookkeeping, the tail of each boosting round), plus better core utilisation
+during those gaps.
+
+**What would have made the number look better, dishonestly.** Leaving `n_jobs`
+at its default so each of the six trials grabbed all 15 cores. That produces
+6x oversubscription: every trial runs slower, but the *sequential* baseline
+would also have to be re-run under the same handicap to be comparable, and it
+would not be. Capping threads per trial is what makes 1.65x a real number.
+
+**Where Ray Tune would actually pay.** Trials that are individually
+single-threaded, or a real multi-node cluster where the extra cores are
+genuinely extra. On one box running an already-parallel learner, the honest
+answer is that it is worth 1.65x and about 10 seconds of startup.

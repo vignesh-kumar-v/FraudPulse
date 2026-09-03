@@ -5,7 +5,8 @@ VENV := .venv
 
 .DEFAULT_GOAL := help
 .PHONY: help setup up down logs ps smoke data prepare test lint fmt clean \
-        topic produce land features parity train serve loadtest drift nuke
+        topic produce land features parity train serve loadtest drift nuke \
+        build-offline hpo-compare verify e2e status
 
 help: ## show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -60,8 +61,12 @@ features: ## PHASE 2: consume events, compute online features, push to redis
 	$(PY) -m fraudpulse.cli features
 
 # ------------------------------------------------------------------ features
-parity: ## PHASE 2 verify: offline vs online feature parity report
+build-offline: ## PHASE 2: compute offline features and register the feast repo
+	$(PY) -m fraudpulse.cli build-offline
+
+parity: ## PHASE 2 verify: offline vs online feature parity, in-process and e2e
 	$(PY) -m fraudpulse.cli parity
+	$(PY) scripts/verify_parity.py
 
 # ------------------------------------------------------------------ modelling
 train: ## PHASE 3: build training set, tune, train, register in mlflow
@@ -71,11 +76,24 @@ serve: ## PHASE 3: run the inference API on :8000
 	$(PY) -m uvicorn fraudpulse.serving.app:app --host 0.0.0.0 --port 8000
 
 loadtest: ## PHASE 3 verify: measure p50/p95/p99 inference latency
-	$(PY) -m fraudpulse.cli loadtest
+	$(PY) -m fraudpulse.cli loadtest --n 2000 --concurrency 1
+	$(PY) -m fraudpulse.cli loadtest --n 8000 --concurrency 8 --processes 4
+	$(PY) -m fraudpulse.cli loadtest --n 2000 --concurrency 1 --explain
+
+status: ## show what exists so far
+	$(PY) -m fraudpulse.cli status
 
 # ----------------------------------------------------------------- monitoring
 drift: ## PHASE 4 verify: run the drift monitor against an injected shift
 	$(PY) -m fraudpulse.cli drift
+
+hpo-compare: ## PHASE 5 verify (stretch): optuna vs ray tune wall-clock
+	$(PY) -m fraudpulse.cli hpo-compare
+
+verify: ## run every phase's verification gate and print a pass/fail table
+	$(PY) -m fraudpulse.cli verify-all
+
+e2e: up topic prepare produce land build-offline features parity train verify ## full pipeline from nothing
 
 # ----------------------------------------------------------------------- dev
 test: ## run the test suite (no docker, no dataset required)

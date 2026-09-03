@@ -178,6 +178,25 @@ def drift(
 
 
 @app.command()
+def hpo_compare(
+    trials: int = typer.Option(20),
+    model: str = typer.Option("xgboost"),
+) -> None:
+    """PHASE 5 verify (stretch) — sequential Optuna vs. parallel Ray Tune wall-clock."""
+    from fraudpulse.training.tune_ray import compare_sequential_vs_parallel
+
+    typer.echo(json.dumps(compare_sequential_vs_parallel(model, trials), indent=2))
+
+
+@app.command()
+def verify_all() -> None:
+    """Run every phase's verification check and print a pass/fail table."""
+    from fraudpulse.verify import run_all
+
+    raise typer.Exit(0 if run_all() else 1)
+
+
+@app.command()
 def status() -> None:
     """Print what exists so far: services, data files, registry, model."""
     from fraudpulse.status import print_status

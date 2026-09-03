@@ -1,0 +1,11 @@
+{
+  "model_type": "xgboost",
+  "n_trials": 20,
+  "cores": 15,
+  "sequential_optuna_seconds": 149.04093095799908,
+  "parallel_ray_seconds": 90.21274145900679,
+  "speedup": 1.6521051078546833,
+  "sequential_best_pr_auc": 0.20885237797594491,
+  "parallel_best_pr_auc": 0.21034927439620954,
+  "pr_auc_delta": 0.0014968964202646262
+}
