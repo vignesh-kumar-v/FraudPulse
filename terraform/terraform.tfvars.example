@@ -1,0 +1,8 @@
+aws_region  = "us-east-1"
+environment = "dev"
+
+# Keep this small. The bucket is rebuilt from local Parquet in one command.
+offline_store_retention_days = 14
+
+# ~$0.115/hr; a FraudPulse training run is a few minutes.
+training_instance_type = "ml.m5.large"

@@ -352,3 +352,51 @@ would not be. Capping threads per trial is what makes 1.65x a real number.
 single-threaded, or a real multi-node cluster where the extra cores are
 genuinely extra. On one box running an already-parallel learner, the honest
 answer is that it is worth 1.65x and about 10 seconds of startup.
+
+---
+
+## #11 — The cloud training path silently zeroed four features, including the most important one
+
+**Symptom.** The Fargate training job completed, exit code 0, model artifact in
+S3, no warning anywhere. The only signal was one line the runner prints:
+
+```
+cloud test PR-AUC=0.14247  local=0.17164  delta=-0.02918
+```
+
+**Cause.** The container's feature preparation was one convenient line:
+
+```python
+X = df[feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+```
+
+Four of the 31 columns — `product_cd`, `card_network`, `card_type`,
+`email_domain` — are strings. `errors="coerce"` turns each into `NaN`, and
+`fillna(0.0)` turns every `NaN` into the same `0.0`. The result is four constant
+columns. The model trained on 27 real features and four dead ones, and XGBoost
+handled it exactly as it should: it ignored them and reported a perfectly valid
+score for a worse model.
+
+`product_cd` was the single highest-importance feature in the local model
+(gain 0.273).
+
+**Why nothing caught it.** Every guard in the pipeline was satisfied. The row
+count was right. No NaNs reached the model. No exception, no warning, exit 0.
+`errors="coerce"` is a request to convert failures into silence, applied to
+columns that were always going to fail.
+
+**Fix, in two parts.**
+
+1. The container ordinal-encodes the categoricals from the train slice, the same
+   way `training/dataset.py` does. Cloud PR-AUC 0.14247 → **0.16751**, a delta
+   of −0.00414 against local, which is now fully explained by the local run
+   being Optuna-tuned over 40 trials while the container uses one fixed config.
+2. `_assert_no_dead_features()` aborts if any feature is constant across the
+   training slice. A constant feature is almost never intentional — it is what a
+   botched encoding, a failed join, or a missing column looks like from the
+   inside. That check would have caught this on the first run rather than in the
+   PR-AUC comparison afterwards.
+
+**The reason it was findable at all** is that `run_fargate_training.py` compares
+the cloud metric to the local one on every run. A deployment script that only
+reported "task succeeded" would have shipped this.

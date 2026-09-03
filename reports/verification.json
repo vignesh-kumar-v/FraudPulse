@@ -4,48 +4,48 @@
     "check": "services reachable",
     "passed": true,
     "detail": "all up",
-    "seconds": 0.0018928329955087975
+    "seconds": 0.002642791994730942
   },
   {
     "phase": "1",
     "check": "landed rows == source rows",
     "passed": true,
     "detail": "source=590540 landed=590540",
-    "seconds": 0.4339043749932898
+    "seconds": 0.4145262500096578
   },
   {
     "phase": "2",
     "check": "offline/online feature parity",
     "passed": true,
     "detail": "watermark 0/590540 mismatched; arrival 166 (0.0281%) - the naive path must still diverge or the check is vacuous",
-    "seconds": 9.065024458002881
+    "seconds": 9.028091416999814
   },
   {
     "phase": "2",
     "check": "online store matches offline (e2e)",
     "passed": true,
     "detail": "590540 events served vs offline: 0 mismatched; redis spot check 20/20 exact",
-    "seconds": 4.273376417011605
+    "seconds": 4.25871179200476
   },
   {
     "phase": "3",
     "check": "model beats the amount-only baseline",
     "passed": true,
     "detail": "test PR-AUC 0.1716 vs amount-only 0.0371 (4.6x) vs prevalence 0.0348",
-    "seconds": 8.829100988805294e-05
+    "seconds": 8.699999307282269e-05
   },
   {
     "phase": "3",
     "check": "p95 inference latency",
     "passed": true,
     "detail": "p95 2.27ms end-to-end, 1.35ms server-side, 0 errors",
-    "seconds": 0.00011158300912939012
+    "seconds": 0.00011875000200234354
   },
   {
     "phase": "4",
     "check": "drift monitor fires on shift, not on noise",
     "passed": true,
     "detail": "null share 0.000 (must be quiet); temporal floor 0.391; detected 3/3 injections",
-    "seconds": 0.0002091249916702509
+    "seconds": 0.00018708300194703043
   }
 ]

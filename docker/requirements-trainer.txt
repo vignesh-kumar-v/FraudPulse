@@ -1,0 +1,9 @@
+# Pinned: a training container that silently picks up a new XGBoost minor and
+# produces a differently-shaped model is exactly the kind of drift this project
+# is about.
+boto3==1.35.36
+numpy==2.1.3
+pandas==2.2.3
+pyarrow==18.1.0
+scikit-learn==1.5.2
+xgboost==2.1.3

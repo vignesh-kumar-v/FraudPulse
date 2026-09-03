@@ -1,0 +1,32 @@
+# Training container for the ECS Fargate path.
+#
+# Deliberately minimal: the cloud training job only needs the model code and its
+# numeric dependencies. Feast, Kafka, MLflow and FastAPI are all local-stack
+# concerns and pulling them in would roughly triple the image for no benefit -
+# the training data arrives as Parquet in S3, already joined.
+FROM --platform=linux/arm64 python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# libgomp is XGBoost's OpenMP runtime. Without it the import fails at container
+# start with a bare "libgomp.so.1: cannot open shared object file", which on
+# Fargate shows up only as a stopped task.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgomp1 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Dependencies first so a code change does not invalidate the wheel layer.
+COPY docker/requirements-trainer.txt .
+RUN pip install --no-cache-dir -r requirements-trainer.txt
+
+COPY docker/train_entrypoint.py .
+
+# Non-root: nothing here needs to write outside /tmp.
+RUN useradd --create-home --uid 10001 trainer
+USER trainer
+
+ENTRYPOINT ["python", "train_entrypoint.py"]
