@@ -1,7 +1,10 @@
-# Data (never commit datasets or generated artifacts)
-data/
-feature_repo/data/
-!data/.gitkeep
+# Datasets and generated artifacts. Anchored with a leading slash: a bare
+# `data/` matches a directory of that name at ANY depth, which silently
+# excluded src/fraudpulse/data/ - the package's own module - from the repo.
+# The tests passed locally and CI died on ModuleNotFoundError.
+/data/
+/feature_repo/data/
+!/data/.gitkeep
 
 # Python
 __pycache__/
