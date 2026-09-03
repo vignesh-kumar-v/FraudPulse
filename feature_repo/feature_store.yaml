@@ -10,6 +10,10 @@ online_store:
   connection_string: localhost:6379,db=0
 
 offline_store:
-  type: file
+  # DuckDB, not the default dask/file store. The dask point-in-time join spent
+  # 70s on 5,000 entity rows and died silently (no traceback, exit 0) on the
+  # full 590,540. DuckDB does the same join as a SQL ASOF-style query in
+  # seconds. Same Parquet files underneath - only the engine changes.
+  type: duckdb
 
 entity_key_serialization_version: 3

@@ -158,19 +158,42 @@ ONDEMAND_FEATURE_NAMES: list[str] = [
     "seconds_since_last_txn",
 ]
 
-# Raw request fields that go into the model alongside store features.
+# Raw request fields that go into the model alongside store features. All of
+# these are on the transaction itself, so they are available at scoring time
+# with no store lookup.
 REQUEST_FEATURE_NAMES: list[str] = [
     "amount",
     "hour_of_day",
     "day_of_week",
+    "addr1",
+    "dist1",
+]
+
+# Stored, but deliberately NOT fed to the model.
+#
+# `last_txn_unixtime` exists so `seconds_since_last_txn` can be derived at read
+# time (see features/ondemand.py). Handing the raw absolute timestamp to the
+# model as well is a trap: the split is chronological, so every value in test is
+# larger than every value in train, and a tree can only learn a threshold that
+# routes the whole test set down one branch. It scored 0.036 importance in an
+# early run - signal that cannot possibly generalise.
+STORE_ONLY_FEATURES: frozenset[str] = frozenset({"last_txn_unixtime"})
+
+MODEL_STORE_FEATURE_NAMES: list[str] = [
+    f for f in FEATURE_NAMES if f not in STORE_ONLY_FEATURES
 ]
 
 MODEL_FEATURE_NAMES: list[str] = (
-    REQUEST_FEATURE_NAMES + FEATURE_NAMES + ONDEMAND_FEATURE_NAMES
+    REQUEST_FEATURE_NAMES + MODEL_STORE_FEATURE_NAMES + ONDEMAND_FEATURE_NAMES
 )
 
-# Categorical raw fields kept for the model (one-hot / ordinal encoded at
-# training time; the encoder is persisted with the model).
-CATEGORICAL_FEATURE_NAMES: list[str] = ["product_cd", "card_network", "card_type"]
+# Categorical raw fields kept for the model (ordinal-encoded at training time;
+# the encoder is persisted with the model).
+CATEGORICAL_FEATURE_NAMES: list[str] = [
+    "product_cd",
+    "card_network",
+    "card_type",
+    "email_domain",
+]
 
 ALL_MODEL_INPUTS: list[str] = MODEL_FEATURE_NAMES + CATEGORICAL_FEATURE_NAMES

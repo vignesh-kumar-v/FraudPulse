@@ -25,6 +25,7 @@ story:
 """
 
 from datetime import timedelta
+from pathlib import Path
 
 import pandas as pd
 from feast import (
@@ -56,9 +57,16 @@ card = Entity(
     description="Payment card / account. Derived from IEEE-CIS card1.",
 )
 
+# Absolute, resolved from this file. The dask offline store resolves relative
+# FileSource paths against the feature repo; the duckdb one resolves them
+# against the caller's cwd, so a relative path works from `feast apply` and
+# fails from anything else. Absolute removes the ambiguity. The registry is
+# local and gitignored, so baking a machine path into it costs nothing.
+_BATCH_PARQUET = Path(__file__).resolve().parent / "data" / "card_features.parquet"
+
 card_stats_batch = FileSource(
     name="card_stats_batch",
-    path="data/card_features.parquet",
+    path=str(_BATCH_PARQUET),
     timestamp_field="event_timestamp",
     created_timestamp_column="created",
     description="Offline feature values produced by fraudpulse.features.offline.",

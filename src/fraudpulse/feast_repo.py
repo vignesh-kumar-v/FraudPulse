@@ -13,6 +13,7 @@ import pandas as pd
 
 from fraudpulse.config import settings
 from fraudpulse.features.spec import ENTITY_KEY, EVENT_TS, FEATURE_DTYPES, FEATURE_NAMES
+from fraudpulse.features.timeline import tiebreak_timestamps
 from fraudpulse.logging_utils import get_logger
 
 log = get_logger(__name__)
@@ -39,7 +40,8 @@ def write_offline_parquet(features: pd.DataFrame, path: Path | None = None) -> P
 
     cols = [ENTITY_KEY, EVENT_TS, *FEATURE_NAMES]
     out = features[cols].copy()
-    out[EVENT_TS] = pd.to_datetime(out[EVENT_TS])
+    # Same tiebreaker as the entity side of the join - see features/timeline.py.
+    out[EVENT_TS] = tiebreak_timestamps(features)
     out["created"] = pd.Timestamp.utcnow().tz_localize(None)
     for name, dtype in FEATURE_DTYPES.items():
         out[name] = out[name].astype(dtype)

@@ -61,13 +61,23 @@ services:
       - redis-data:/data
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.16.2
+    # Pinned to the same major as the mlflow client in pyproject.toml. A 3.x
+    # client against a 2.x server fails at model registration with a bare 404
+    # on /api/2.0/mlflow/logged-models - the tracking calls all succeed first,
+    # so the run looks healthy right up until the model is logged.
+    image: ghcr.io/mlflow/mlflow:v3.15.2
     container_name: fp-mlflow
+    # --serve-artifacts makes the server a proxy for artifact upload/download,
+    # so runs use mlflow-artifacts:/ URIs. Without it the server hands the
+    # client its own *container* path (/mlflow/artifacts) and the client - on
+    # the host - tries to makedirs() it, failing with a read-only-filesystem
+    # error at model-logging time.
     command: >
       mlflow server
       --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
     ports:
       - "5001:5000"
     healthcheck:

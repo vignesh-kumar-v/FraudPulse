@@ -34,6 +34,7 @@ from fraudpulse.features.spec import (
     EVENT_TS,
     MODEL_FEATURE_NAMES,
 )
+from fraudpulse.features.timeline import tiebreak_timestamps
 from fraudpulse.logging_utils import get_logger
 
 log = get_logger(__name__)
@@ -51,6 +52,10 @@ class Split:
     X_test: pd.DataFrame
     y_test: pd.Series
     boundaries: tuple[pd.Timestamp, pd.Timestamp]
+    # The exact string -> integer map used to encode the categoricals. Persisted
+    # with the model; re-deriving it at serving time is how `visa` ends up
+    # encoded as 2 in production and 0 in training.
+    categories: dict[str, list[str]]
 
     def describe(self) -> dict:
         return {
@@ -67,8 +72,12 @@ class Split:
 def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.DataFrame:
     """Point-in-time join of labels to features, via the Feast feature service."""
     entity_df = events[["transaction_id", ENTITY_KEY, EVENT_TS, "amount", "product_cd",
-                        "card_network", "card_type", LABEL]].copy()
-    entity_df[EVENT_TS] = pd.to_datetime(entity_df[EVENT_TS])
+                        "card_network", "card_type", "email_domain", "addr1", "dist1",
+                        LABEL]].copy()
+    # Without this, Feast's point-in-time join drops one of every pair of
+    # same-card same-second transactions - 166 rows on IEEE-CIS, 8.4% of them
+    # fraud against a 3.50% base rate. See features/timeline.py.
+    entity_df[EVENT_TS] = tiebreak_timestamps(entity_df)
     entity_df["event_unixtime"] = (
         entity_df[EVENT_TS].astype("datetime64[s]").astype(np.int64).astype(np.float64)
     )
@@ -103,6 +112,18 @@ def build_training_set(events: pd.DataFrame, *, use_feast: bool = True) -> pd.Da
 
     out = df[["transaction_id", ENTITY_KEY, EVENT_TS, LABEL, *ALL_MODEL_INPUTS]]
     out = out.sort_values(EVENT_TS, kind="stable").reset_index(drop=True)
+
+    # Row-count gate. The point-in-time join has a documented habit of losing
+    # rows quietly (features/timeline.py); an assertion here is the difference
+    # between finding that in five minutes and finding it never.
+    if len(out) != len(events):
+        lost = set(events["transaction_id"]) - set(out["transaction_id"])
+        raise RuntimeError(
+            f"point-in-time join lost {len(events) - len(out)} of {len(events)} rows "
+            f"(e.g. transaction_ids {sorted(lost)[:5]}). Refusing to train on a "
+            "silently truncated dataset."
+        )
+
     log.info("training set: %d rows, %d features, fraud_rate=%.4f",
              len(out), len(ALL_MODEL_INPUTS), out[LABEL].mean())
     return out
@@ -138,7 +159,11 @@ def chronological_split(
     i_test = int(n * (1 - test_frac))
     b = (df[EVENT_TS].iloc[i_valid], df[EVENT_TS].iloc[i_test])
 
-    encoded, _ = encode_categoricals(df)
+    # Categories are derived from the TRAIN slice only. Deriving them from the
+    # whole frame would leak the existence of test-only category values into the
+    # encoding, and would also disagree with what serving can know.
+    _, categories = encode_categoricals(df.iloc[:i_valid])
+    encoded, _ = encode_categoricals(df, categories)
     X = encoded[ALL_MODEL_INPUTS]
     y = encoded[LABEL].astype(int)
 
@@ -147,6 +172,7 @@ def chronological_split(
         X_valid=X.iloc[i_valid:i_test], y_valid=y.iloc[i_valid:i_test],
         X_test=X.iloc[i_test:], y_test=y.iloc[i_test:],
         boundaries=b,
+        categories=categories,
     )
     log.info("chronological split: %s", split.describe())
     return split

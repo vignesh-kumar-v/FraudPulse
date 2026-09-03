@@ -1,0 +1,43 @@
+{
+  "baselines": {
+    "baseline_prevalence": 0.03480430340592226,
+    "baseline_random_pr_auc": 0.03523966654168392,
+    "baseline_amount_only_pr_auc": 0.03712227931551147
+  },
+  "results": [
+    {
+      "model_type": "xgboost",
+      "params": {
+        "max_depth": 9,
+        "learning_rate": 0.07725378389307355,
+        "subsample": 0.8540362888980227,
+        "colsample_bytree": 0.5102922471479012,
+        "min_child_weight": 17.898794163735268,
+        "reg_lambda": 5.332693713874538,
+        "reg_alpha": 0.0011526449540315614
+      },
+      "valid_pr_auc": 0.2064400832943642,
+      "test_pr_auc": 0.16683092451693102,
+      "test_roc_auc": 0.7926674997118823,
+      "test_precision_at_recall_50": 0.1466058185966914,
+      "test_recall_at_precision_90": 0.0,
+      "fit_seconds": 3.3024256249918835,
+      "n_trials": 2,
+      "tuning_seconds": 4.635201334007434,
+      "extra": {}
+    }
+  ],
+  "winner": "xgboost",
+  "split": {
+    "n_train": 413378,
+    "n_valid": 88581,
+    "n_test": 88581,
+    "fraud_rate_train": 0.03516878014795175,
+    "fraud_rate_valid": 0.03434145019812375,
+    "fraud_rate_test": 0.03480430340592226,
+    "split_at": [
+      "2018-03-31 19:26:43+00:00",
+      "2018-05-02 05:18:00+00:00"
+    ]
+  }
+}

@@ -55,6 +55,9 @@ class ScoreRequest(BaseModel):
     product_cd: str = "W"
     card_network: str = "unknown"
     card_type: str = "unknown"
+    email_domain: str = "unknown"
+    addr1: float | None = None
+    dist1: float | None = None
     explain: bool = Field(default=False, description="Attach top-N SHAP contributions.")
     top_k: int = Field(default=5, ge=1, le=20)
 
