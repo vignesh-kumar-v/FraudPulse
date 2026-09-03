@@ -150,3 +150,169 @@ tie_policy=watermark  rows with >=1 mismatched feature: 0  (0.0000%)
 That test exists so the passing case cannot quietly become vacuous. If the
 fixture ever stops producing duplicate timestamps, the "0 mismatches" result
 would still be reported — and would no longer mean anything.
+
+---
+
+## #5 — Feast's point-in-time join silently deleted 166 training rows, 2.4x enriched in fraud
+
+**Symptom.** `get_historical_features` on 5,000 entity rows returned 4,995. No
+warning.
+
+**Cause.** The offline join ends with
+
+```python
+df.drop_duplicates(all_join_keys + [entity_df_event_timestamp_col], keep="last")
+```
+
+Two transactions on the same card in the same second are indistinguishable to
+that predicate, so one of them disappears. `transaction_id` is unique and does
+not help — it is not a join key.
+
+**Scale, on the full dataset.**
+
+```
+total rows        : 590540
+tied (card,ts) grp: 146
+rows Feast drops  : 166  (0.0281%)
+fraud rate in the dropped rows : 8.43%   (base rate 3.50%)
+```
+
+0.028% is small. That it is **2.4x enriched in the positive class** is not: the
+join was preferentially deleting the examples the model most needs, and would
+have kept doing so silently forever.
+
+**Fix.** `features/timeline.py` adds a microsecond-scale tiebreaker — the row's
+rank among its card's transactions in that second, ordered by `transaction_id` —
+applied by one shared function to *both* sides of the join, so a feature row and
+its own entity row still line up exactly. Plus a row-count assertion in
+`build_training_set` that refuses to train on a truncated set.
+
+Microseconds rather than nanoseconds: Feast normalises to Arrow
+`timestamp[us]`, and a nanosecond offset raises
+`ArrowInvalid: Casting from timestamp[ns] to timestamp[us] would lose data`.
+
+---
+
+## #6 — The default offline store took 70s on 5k rows and died on 590k with exit code 0
+
+**Symptom.** `make train` printed one log line and exited 0. No traceback, no
+error, no model. The dask-backed point-in-time join had taken the process down.
+
+**Measurements.** 5,000 entity rows: 70.3s. 590,540 entity rows: process
+disappears.
+
+**Fix.** Switched `offline_store.type` from the default to `duckdb` (Feast's
+ibis/DuckDB backend). Same Parquet files, same feature definitions, only the
+join engine changes:
+
+| entity rows | dask | duckdb |
+|---|---|---|
+| 5,000 | 70.3s | <1s |
+| 100,000 | — | 2.1s |
+| 590,540 | dies, exit 0 | 16.3s |
+
+One wrinkle worth knowing: the dask store resolves a relative `FileSource` path
+against the feature repo, and the duckdb store resolves it against the caller's
+cwd. A relative path therefore works under `feast apply` and fails from
+anything else. `definitions.py` now builds an absolute path from `__file__`.
+
+---
+
+## #7 — MLflow client 3.15 against server 2.16: a bare 404, after everything else succeeded
+
+**Symptom.** Every parameter and metric logged fine. Model registration then
+failed with
+
+```
+API request to endpoint /api/2.0/mlflow/logged-models failed with error code 404
+```
+
+**Cause.** The MLflow 3 client uses the logged-models API, which a 2.x server
+does not serve. The failure lands at the very end, after a full tuning run.
+
+**Fix.** Pinned the server image to the client's major (`v3.15.2`).
+
+A second one behind it: with `--default-artifact-root /mlflow/artifacts`, the
+server hands the client its own *container* path and the client — running on the
+host — tries to `os.makedirs()` it, giving
+`OSError: [Errno 30] Read-only file system: '/mlflow'`. Fixed with
+`--serve-artifacts --artifacts-destination`, which makes the server proxy
+artifact I/O and hand out `mlflow-artifacts:/` URIs instead. Note that an
+experiment created before the switch keeps its old artifact location, so the
+existing volume has to be dropped for the change to take.
+
+---
+
+## #8 — The load test was measuring the load generator
+
+**Symptom.** Client-observed p95 climbed 2ms → 12ms → 88ms → 280ms as
+concurrency went 1 → 8 → 16 → 32. The obvious reading: the service falls over
+under load.
+
+**The tell.** The server's own self-timing, returned on every response, stayed
+flat the whole way:
+
+| concurrency | client p95 | **server p95** | rps |
+|---|---|---|---|
+| 1 | 2.23 ms | 1.33 ms | 484 |
+| 8 | 12.52 ms | 3.87 ms | 1,093 |
+| 32 (1 process) | 202.94 ms | **2.17 ms** | 511 |
+
+A service that was actually saturating would show its own work getting slower.
+This one was doing 2.2ms of work per request while callers waited 200ms.
+
+**Confirmation.** Same server, same 32 requests in flight, load split across 4
+client processes instead of 1:
+
+| 32 in flight | rps | client p95 |
+|---|---|---|
+| 1 process × 32 | 511 | 202.94 ms |
+| 4 processes × 8 | **2,054** | **23.39 ms** |
+
+4x the throughput and 9x better tail latency, with nothing changed on the server.
+One Python process driving 32 concurrent HTTP requests is GIL-bound on JSON
+serialisation and asyncio bookkeeping.
+
+**Two real fixes came out of it anyway.** Caching the Feast feature service at
+startup instead of resolving it per request took server p50 from 28.31ms to
+1.65ms — that one was genuine. And `features_used` (31 floats) is now opt-in via
+`include_features`, which moved single-process c=8 throughput from 850 to 1,201
+rps.
+
+**Lesson.** Always have the server time itself. Without that number, the
+client-side curve is unfalsifiable and points at the wrong component.
+
+---
+
+## #9 — The drift monitor's "no shift" control was not a control
+
+**Symptom.** The Phase 4 experiment failed: the unshifted window alerted, 7 of
+23 columns drifting at share 0.304. Read at face value, a 30% false-positive
+rate.
+
+**Cause.** It was not a false positive. The "unshifted" window was simply *later
+in time* — IEEE-CIS spans December 2017 to June 2018 and genuinely drifts across
+those six months. The monitor was right. The experiment was wrong: it had no way
+to distinguish "the monitor over-fires" from "the data moved".
+
+A second, quieter problem in the same design: the reference was the whole
+training set, which *contains* the window being tested against it.
+
+**Fix.** Three comparisons instead of one:
+
+| scenario | reference | current | drift share | verdict |
+|---|---|---|---|---|
+| `null` | random half of the train slice | the other half | **0.000** | quiet — correct |
+| `temporal` | train slice | later slice, untouched | 0.391 | alerts — real seasonality, reported as the floor |
+| `amount` | train slice | later slice, amounts ×4 | 0.783 | clears the floor |
+| `velocity` | train slice | later slice, gaps ÷20 | 0.652 | clears the floor |
+| `product` | train slice | later slice, mix collapsed | 0.478 | clears the floor |
+
+The null control is now two random halves of the *same period*, so it isolates
+the monitor's own behaviour: 0 of 23 columns, share 0.000. Passing requires the
+null quiet, every injection alerting, **and** every injection exceeding the
+temporal floor — otherwise "it fired" would only mean "time passed".
+
+**Worth stating plainly:** this project's own model degrades across that same
+drift. Validation PR-AUC 0.212, test PR-AUC 0.172 — measured on a chronological
+split, so the gap is that six-month movement showing up in the metric.

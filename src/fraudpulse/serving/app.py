@@ -51,7 +51,15 @@ STAGE = Histogram(
     buckets=(0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0),
 )
 
-STATE: dict[str, Any] = {"model": None, "store": None, "explainer": None}
+STATE: dict[str, Any] = {
+    "model": None,
+    "store": None,
+    "explainer": None,
+    # Resolved once at startup. get_feature_service() hits the registry, and
+    # calling it per request put ~20ms of registry I/O inside the latency
+    # budget - it dominated the p50 in the first measurement.
+    "feature_refs": None,
+}
 
 
 @asynccontextmanager
@@ -63,6 +71,13 @@ async def lifespan(_: FastAPI):
     mystery.
     """
     STATE["store"] = get_store()
+    # Resolve the feature service once and cache the concrete refs. This also
+    # makes a renamed or deleted service fail at startup instead of on the
+    # first request.
+    svc = STATE["store"].get_feature_service(FEATURE_SERVICE)
+    STATE["feature_refs"] = [f"card_stats:{f}" for f in FEATURE_NAMES]
+    log.info("feature service '%s' resolved (%d stored features)",
+             svc.name, len(STATE["feature_refs"]))
     try:
         STATE["model"] = load_latest()
         log.info("model %s v%s ready (%d features, test PR-AUC=%s)",
@@ -98,15 +113,12 @@ app = FastAPI(
 
 def _fetch_online(card_id: str) -> tuple[dict[str, float], bool]:
     """Stored features for one card. Returns (features, found_in_store)."""
-    store = STATE["store"]
-    svc = store.get_feature_service(FEATURE_SERVICE)
     # The feature service also contains the on-demand view, which needs request
     # data we handle ourselves; ask for the stored columns only.
-    resp = store.get_online_features(
-        features=[f"card_stats:{f}" for f in FEATURE_NAMES],
+    resp = STATE["store"].get_online_features(
+        features=STATE["feature_refs"],
         entity_rows=[{ENTITY_KEY: card_id}],
     ).to_dict()
-    del svc  # referenced so a renamed service fails loudly at startup, not silently
 
     out: dict[str, float] = {}
     found = False
@@ -179,8 +191,11 @@ def _score_one(req: ScoreRequest) -> ScoreResponse:
         model_version=f"{model.model_type}:v{model.version}",
         feature_source="online_store" if found else "cold_start",
         latency_ms=latency_ms,
-        features_used={k: float(v) for k, v in row.items()
-                       if isinstance(v, (int, float)) and v is not None},
+        features_used=(
+            {k: float(v) for k, v in row.items()
+             if isinstance(v, (int, float)) and v is not None}
+            if req.include_features else None
+        ),
         explanation=explanation,
     )
 

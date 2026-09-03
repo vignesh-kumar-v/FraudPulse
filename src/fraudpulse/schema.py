@@ -60,6 +60,12 @@ class ScoreRequest(BaseModel):
     dist1: float | None = None
     explain: bool = Field(default=False, description="Attach top-N SHAP contributions.")
     top_k: int = Field(default=5, ge=1, le=20)
+    include_features: bool = Field(
+        default=False,
+        description="Echo the full feature vector back. Useful for debugging and "
+        "for the parity checks; off by default because serialising 31 floats on "
+        "every call is pure overhead in production.",
+    )
 
 
 class ShapContribution(BaseModel):

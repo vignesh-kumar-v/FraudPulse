@@ -65,7 +65,7 @@ ignore = ["B008", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --strict-markers"
+addopts = "-q --strict-markers -p no:warnings"
 markers = [
   "integration: requires docker services (kafka/redis) to be up",
   "slow: long-running",

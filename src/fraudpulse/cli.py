@@ -147,7 +147,10 @@ def train(
 @app.command()
 def loadtest(
     n: int = typer.Option(2_000),
-    concurrency: int = typer.Option(16),
+    concurrency: int = typer.Option(16, help="Concurrent requests per client process."),
+    processes: int = typer.Option(
+        1, help="Client processes. >1 avoids the load generator becoming the bottleneck."
+    ),
     url: str = typer.Option("http://localhost:8000"),
     explain: bool = typer.Option(False, help="Measure the SHAP endpoint's added latency."),
     out: Path = typer.Option(Path("reports/latency.json")),
@@ -156,7 +159,7 @@ def loadtest(
     from fraudpulse.serving.loadtest import run_loadtest
 
     run_loadtest(
-        n=n, concurrency=concurrency, base_url=url, explain=explain,
+        n=n, concurrency=concurrency, processes=processes, base_url=url, explain=explain,
         out_path=settings.repo_root / out,
     )
 
@@ -164,7 +167,7 @@ def loadtest(
 # -------------------------------------------------------------------- phase 4
 @app.command()
 def drift(
-    inject: str = typer.Option("amount", help="none | amount | velocity | product"),
+    inject: str = typer.Option("all", help="all | amount | velocity | product"),
     out: Path = typer.Option(Path("reports")),
 ) -> None:
     """PHASE 4 verify — run the drift monitor against an injected shift."""
