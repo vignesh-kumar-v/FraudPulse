@@ -1,5 +1,7 @@
 # FraudPulse
 
+[![ci](https://github.com/vignesh-kumar-v/FraudPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/vignesh-kumar-v/FraudPulse/actions/workflows/ci.yml)
+
 Real-time fraud detection on a Feast feature store, built to answer one
 question: **can you prove the features your model was trained on are the same
 features it is served?**
@@ -27,7 +29,7 @@ Redis, and — for the cloud leg — real AWS. Reproduce with `make verify`.
 | 2 | Offline vs. online feature parity | **0 / 590,540** mismatched |
 | 2 | Online store vs. offline, through Kafka | **0** mismatched, **20/20** Redis spot checks exact |
 | 3 | Model beats a real baseline | **PR-AUC 0.1716** vs 0.0371 amount-only (**4.6×**) |
-| 3 | p95 inference latency | **2.27 ms** end-to-end, 1.35 ms server-side |
+| 3 | p95 inference latency | **2.22 ms** end-to-end, 1.31 ms server-side |
 | 4 | Drift fires on shift, not on noise | null **0.000**, temporal floor 0.391, **3/3** injections detected |
 
 ```
@@ -52,18 +54,18 @@ quietly become vacuous.
 
 | load | rps | client p50 | client p95 | server p50 | **server p95** |
 |---|---|---|---|---|---|
-| 1 concurrent | 480 | 2.05 ms | 2.27 ms | 1.22 ms | **1.35 ms** |
+| 1 concurrent | 487 | 2.00 ms | 2.22 ms | 1.16 ms | **1.31 ms** |
 | 8 concurrent | 1,093 | 6.45 ms | 12.52 ms | 2.03 ms | **3.87 ms** |
-| 32 concurrent (4 client procs) | 2,054 | 14.76 ms | 23.39 ms | 4.15 ms | **8.36 ms** |
+| 32 concurrent (4 client procs) | 2,141 | 14.15 ms | 24.15 ms | 3.97 ms | **8.74 ms** |
 | 32 concurrent (1 client proc) | 511 | 34.72 ms | 202.94 ms | 1.44 ms | **2.17 ms** |
 
 That last row is not the service failing. It is the load generator being
 GIL-bound — the server's own self-timing stayed flat while the client's ballooned
 9×. Splitting the *same* 32 in-flight requests across four processes took
-throughput from 511 to 2,054 rps with nothing changed server-side.
+throughput from 511 to 2,141 rps with nothing changed server-side.
 [findings.md #8](docs/findings.md).
 
-SHAP adds **+4.52 ms** to p95 (2.27 → 6.79 ms at concurrency 1).
+SHAP adds **+4.37 ms** to p95 (2.22 → 6.59 ms at concurrency 1).
 
 ### Model
 

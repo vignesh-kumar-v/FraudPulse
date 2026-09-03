@@ -9,7 +9,7 @@ Nothing is rounded up.
 
 > Built a real-time fraud detection pipeline (Kafka → Feast → FastAPI) that
 > verifies offline/online feature parity across all 590,540 transactions,
-> serving predictions at 2.27 ms p95; found and fixed 11 silent-failure bugs,
+> serving predictions at 2.22 ms p95; found and fixed 11 silent-failure bugs,
 > including a partition-ordering interaction that made the feature store
 > silently drop writes.
 
@@ -21,10 +21,10 @@ Nothing is rounded up.
 > and proving **0 mismatches across all 590,540 events** end-to-end through the
 > broker, versus 166 under a naive streaming implementation.
 >
-> Served XGBoost predictions via FastAPI at **2.27 ms p95** (1.35 ms server-side,
-> 2,054 rps at 32 concurrent), **PR-AUC 0.172 vs 0.037** for the strongest
+> Served XGBoost predictions via FastAPI at **2.22 ms p95** (1.31 ms server-side,
+> 2,141 rps at 32 concurrent), **PR-AUC 0.172 vs 0.037** for the strongest
 > trivial baseline on a 3.5%-positive problem; added SHAP explanations for
-> **+4.5 ms**.
+> **+4.4 ms**.
 >
 > Wired Evidently drift monitoring verified against three injected shifts **and**
 > a null control (0.000 drift share on same-period data), and provisioned the
@@ -79,8 +79,8 @@ Pick the ones that match the role.
 > prevalence — 4.6× the strongest trivial baseline on a 3.5%-positive problem.
 
 **Serving / performance**
-> Served predictions from Redis-backed features at **2.27 ms p95** end-to-end
-> (1.35 ms server-side), scaling to 2,054 rps. Caught that an apparent
+> Served predictions from Redis-backed features at **2.22 ms p95** end-to-end
+> (1.31 ms server-side), scaling to 2,141 rps. Caught that an apparent
 > saturation at 32 concurrent (p95 203 ms) was the *load generator* being
 > GIL-bound, not the service — the server's own per-stage timing stayed flat at
 > 2.17 ms — and confirmed it by splitting the same in-flight load across four
